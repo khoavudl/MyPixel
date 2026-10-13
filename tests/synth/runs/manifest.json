@@ -1,0 +1,44 @@
+[
+  {
+    "id": "case_1_delete_char",
+    "name": "Case 1: Xóa 1 ký tự có dấu (O trong BO)",
+    "dir": "tests/synth/runs/case_1_delete_char",
+    "truth_count": 1
+  },
+  {
+    "id": "case_2_change_digit",
+    "name": "Case 2: Đổi 1 chữ số (320 -> 326)",
+    "dir": "tests/synth/runs/case_2_change_digit",
+    "truth_count": 1
+  },
+  {
+    "id": "case_3_delete_punct",
+    "name": "Case 3: Xóa 1 dấu %",
+    "dir": "tests/synth/runs/case_3_delete_punct",
+    "truth_count": 1
+  },
+  {
+    "id": "case_4_shift_small",
+    "name": "Case 4: Dời logo 0.15 mm (<= 0.25 mm)",
+    "dir": "tests/synth/runs/case_4_shift_small",
+    "truth_count": 1
+  },
+  {
+    "id": "case_5_shift_large",
+    "name": "Case 5: Dời logo 0.50 mm (> 0.25 mm)",
+    "dir": "tests/synth/runs/case_5_shift_large",
+    "truth_count": 1
+  },
+  {
+    "id": "case_6_add_text",
+    "name": "Case 6: Thêm 1 dòng chữ mới",
+    "dir": "tests/synth/runs/case_6_add_text",
+    "truth_count": 1
+  },
+  {
+    "id": "case_7_no_change",
+    "name": "Case 7: Bản không sửa gì (0 vùng)",
+    "dir": "tests/synth/runs/case_7_no_change",
+    "truth_count": 0
+  }
+]

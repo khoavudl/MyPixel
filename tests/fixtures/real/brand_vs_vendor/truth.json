@@ -1,0 +1,30 @@
+[
+  {
+    "id": 1,
+    "bbox_mm": [466.01, 19.13, 67.23, 61.72],
+    "bbox_px": [5504, 226, 794, 729],
+    "expected_kind": "content",
+    "note": "Thành phần: thêm dòng Sản phẩm có chứa đậu nành, sữa."
+  },
+  {
+    "id": 2,
+    "bbox_mm": [338.24, 109.64, 23.96, 102.45],
+    "bbox_px": [3995, 1295, 283, 1210],
+    "expected_kind": "shift_only",
+    "note": "Logo nhỏ MacCoffee + CÀ PHÊ ĐEN HÒA TAN mặt phải: dời dọc"
+  },
+  {
+    "id": 3,
+    "bbox_mm": [545.42, 101.18, 43.43, 51.65],
+    "bbox_px": [6442, 1195, 513, 610],
+    "expected_kind": "content",
+    "note": "Vùng barcode: brand trống, vendor có mã 8936024244194"
+  },
+  {
+    "id": 4,
+    "bbox_mm": [4.23, 4.23, 237.07, 241.30],
+    "bbox_px": [50, 50, 2800, 2850],
+    "expected_kind": "shift_only",
+    "note": "Ảnh ly cà phê: lệch ~0.17 mm (kỳ vọng shift_only, không khoanh content cả mảng)"
+  }
+]

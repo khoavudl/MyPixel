@@ -1,0 +1,19 @@
+[
+  {
+    "id": 1,
+    "bbox_mm": [
+      16.43,
+      16.43,
+      17.44,
+      17.27
+    ],
+    "expected_kind": "shift_only",
+    "note": "Dời logo 0.15 mm sang phải (kỳ vọng shift_only)",
+    "bbox_px": [
+      194,
+      194,
+      206,
+      204
+    ]
+  }
+]

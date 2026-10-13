@@ -1,0 +1,44 @@
+[
+  {
+    "id": 1,
+    "bbox_mm": [134.11, 133.60, 0.76, 2.03],
+    "bbox_px": [1584, 1578, 9, 24],
+    "expected_kind": "content",
+    "note": "Thành phần (VN), dòng 4: mất ỉ trong chỉnh"
+  },
+  {
+    "id": 2,
+    "bbox_mm": [143.43, 153.75, 1.52, 2.03],
+    "bbox_px": [1694, 1816, 18, 24],
+    "expected_kind": "content",
+    "note": "Hướng dẫn sử dụng (VN), dòng cuối: mất á trong rách"
+  },
+  {
+    "id": 3,
+    "bbox_mm": [198.46, 95.33, 2.37, 2.71],
+    "bbox_px": [2344, 1126, 28, 32],
+    "expected_kind": "content",
+    "note": "Bảng dinh dưỡng, Carbohydrat: mất % sau 19"
+  },
+  {
+    "id": 4,
+    "bbox_mm": [184.91, 103.55, 2.20, 1.69],
+    "bbox_px": [2184, 1223, 26, 20],
+    "expected_kind": "content",
+    "note": "Bảng dinh dưỡng, Chất béo bão hòa: mất ,4 trong 12,4"
+  },
+  {
+    "id": 5,
+    "bbox_mm": [124.63, 97.20, 10.58, 1.61],
+    "bbox_px": [1472, 1148, 125, 19],
+    "expected_kind": "content",
+    "note": "Đoạn MY: mất Saderi, Mustard."
+  },
+  {
+    "id": 6,
+    "bbox_mm": [144.10, 111.42, 10.84, 1.61],
+    "bbox_px": [1702, 1316, 128, 19],
+    "expected_kind": "content",
+    "note": "Đoạn ID: mất Seledri, Mustard."
+  }
+]

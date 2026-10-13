@@ -1,0 +1,35 @@
+profile_id: default_v1
+px_per_mm: 11.811            # ~300 DPI; configurable parameter
+default_pages:
+  brand: 1                   # 1-based, default page 1
+  vendor: 1                  # 1-based, default page 1
+size_tolerance_mm: 1.5       # frame detection & size gate tolerance (mm)
+aspect_tolerance: 0.003      # W/H aspect ratio tolerance
+align:
+  min_ransac_inliers: 12
+  ransac_reproj_threshold_px: 2.0
+  stable_diff_threshold: 25  # |A - B| threshold (0..255) to exclude modified content from ECC mask
+  ecc_max_iter: 200
+  ecc_eps: 1.0e-6
+  max_inlier_rmse_px: 1.0
+  grid: [10, 4]
+  max_grid_shift_px: 1.0
+  min_cell_std: 8.0          # ignore flat cells with intensity std < threshold
+
+phase2:
+  pixelmatch_threshold: 0.1        # điểm xuất phát
+  include_aa: false                # false = bỏ qua anti-aliasing
+  neighbor_radius_px: 1
+  dilate_px: 6                     # gộp ký tự cùng dòng
+  min_area_px: 4
+  merge_gap_px: 4                  # gộp box sát nhau
+  local_align:
+    grid_cell_mm: 20
+    grid_overlap: 0.5
+    max_local_shift_px: 3          # = move_threshold_mm * px_per_mm
+    min_texture_std: 4.0           # ô quá trơn → không canh
+    min_corr_response: 0.25        # độ tương quan phaseCorrelate tối thiểu để coi là dịch chuyển thật
+  move_threshold_mm: 0.25          # D2
+  shift_only_min_shift_px: 0.5     # dịch nhỏ hơn mức này coi như không dịch
+  ignore_zones_mm: []              # [{bbox_mm: [x,y,w,h], reason: "..."}]
+

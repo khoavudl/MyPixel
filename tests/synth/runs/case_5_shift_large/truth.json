@@ -1,0 +1,19 @@
+[
+  {
+    "id": 1,
+    "bbox_mm": [
+      16.43,
+      16.43,
+      17.78,
+      17.27
+    ],
+    "expected_kind": "moved",
+    "note": "Dời logo 0.50 mm sang phải (kỳ vọng moved)",
+    "bbox_px": [
+      194,
+      194,
+      210,
+      204
+    ]
+  }
+]

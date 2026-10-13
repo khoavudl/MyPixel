@@ -1,0 +1,367 @@
+{
+  "run_id": "case_3_delete_punct",
+  "timestamp_utc": "2026-10-13T07:30:56.683221+00:00",
+  "mode": "auto",
+  "target_size_mm": [
+    100.0,
+    80.0
+  ],
+  "inputs": {
+    "brand": {
+      "pdf_path": "tests/synth/runs/case_3_delete_punct/brand.pdf",
+      "page_number": 1,
+      "sha256": "c230b9dddb20cee00b0f6e453bbd91406f4b5125c303c73cc44024b4985c593d",
+      "page_size_mm": [
+        120.0,
+        100.0
+      ],
+      "rendered_shape_px": [
+        1182,
+        1418,
+        3
+      ],
+      "trimbox_mm": null,
+      "cropbox_mm": null,
+      "ocg_layers": [],
+      "vector_candidates_count": 2
+    },
+    "vendor": {
+      "pdf_path": "tests/synth/runs/case_3_delete_punct/vendor.pdf",
+      "page_number": 1,
+      "sha256": "ea253da85672afc5d5b17fcd0984a7374c0546b895303d089e26bdb29ae74455",
+      "page_size_mm": [
+        120.0,
+        100.0
+      ],
+      "rendered_shape_px": [
+        1182,
+        1418,
+        3
+      ],
+      "trimbox_mm": null,
+      "cropbox_mm": null,
+      "ocg_layers": [],
+      "vector_candidates_count": 2
+    }
+  },
+  "tasks": {
+    "task1_render": {
+      "ok": true,
+      "elapsed_ms": 10.7
+    },
+    "task2_frame_detect": {
+      "ok": true,
+      "elapsed_ms": 41.36,
+      "brand": {
+        "target_size_mm": [
+          100.0,
+          80.0
+        ],
+        "trimbox_candidate": null,
+        "vector_candidate": {
+          "bbox_mm": [
+            10.0,
+            10.0,
+            100.0,
+            80.0
+          ],
+          "method": "pdf_vector",
+          "confidence": 0.99,
+          "size_err_mm": [
+            0.0,
+            0.0
+          ],
+          "confirmed": false,
+          "elapsed_ms": 0.02
+        },
+        "raster_candidate": {
+          "bbox_mm": [
+            10.16,
+            10.16,
+            99.9915,
+            80.0102
+          ],
+          "method": "opencv_raster",
+          "confidence": 0.98,
+          "size_err_mm": [
+            0.0085,
+            0.0102
+          ],
+          "confirmed": false,
+          "elapsed_ms": 13.29
+        },
+        "selected": {
+          "bbox_mm": [
+            10.0,
+            10.0,
+            100.0,
+            80.0
+          ],
+          "method": "pdf_vector",
+          "confidence": 0.99,
+          "size_err_mm": [
+            0.0,
+            0.0
+          ],
+          "confirmed": false,
+          "elapsed_ms": 0.02
+        }
+      },
+      "vendor": {
+        "target_size_mm": [
+          100.0,
+          80.0
+        ],
+        "trimbox_candidate": null,
+        "vector_candidate": {
+          "bbox_mm": [
+            10.0,
+            10.0,
+            100.0,
+            80.0
+          ],
+          "method": "pdf_vector",
+          "confidence": 0.99,
+          "size_err_mm": [
+            0.0,
+            0.0
+          ],
+          "confirmed": false,
+          "elapsed_ms": 0.02
+        },
+        "raster_candidate": {
+          "bbox_mm": [
+            10.16,
+            10.16,
+            99.9915,
+            80.0102
+          ],
+          "method": "opencv_raster",
+          "confidence": 0.98,
+          "size_err_mm": [
+            0.0085,
+            0.0102
+          ],
+          "confirmed": false,
+          "elapsed_ms": 13.07
+        },
+        "selected": {
+          "bbox_mm": [
+            10.0,
+            10.0,
+            100.0,
+            80.0
+          ],
+          "method": "pdf_vector",
+          "confidence": 0.99,
+          "size_err_mm": [
+            0.0,
+            0.0
+          ],
+          "confirmed": false,
+          "elapsed_ms": 0.02
+        }
+      },
+      "previews": {
+        "brand": "tests/synth/runs/case_3_delete_punct/frame_brand.png",
+        "vendor": "tests/synth/runs/case_3_delete_punct/frame_vendor.png"
+      }
+    },
+    "task3_crop": {
+      "ok": true,
+      "elapsed_ms": 9.31,
+      "brand_confirmed_frame": {
+        "bbox_mm": [
+          10.0,
+          10.0,
+          100.0,
+          80.0
+        ],
+        "method": "pdf_vector",
+        "confidence": 0.99,
+        "size_err_mm": [
+          0.0,
+          0.0
+        ],
+        "confirmed": true,
+        "elapsed_ms": 0.02
+      },
+      "vendor_confirmed_frame": {
+        "bbox_mm": [
+          10.0,
+          10.0,
+          100.0,
+          80.0
+        ],
+        "method": "pdf_vector",
+        "confidence": 0.99,
+        "size_err_mm": [
+          0.0,
+          0.0
+        ],
+        "confirmed": true,
+        "elapsed_ms": 0.02
+      },
+      "brand_cropped_shape_px": [
+        945,
+        1181,
+        3
+      ],
+      "vendor_cropped_shape_px": [
+        945,
+        1181,
+        3
+      ]
+    },
+    "task4_size_gate": {
+      "status": "PASS",
+      "passed": true,
+      "scale_factor_b_to_a": [
+        1.0,
+        1.0
+      ],
+      "aspect_diff": 0.0,
+      "size_diff_mm_a": [
+        0.0,
+        0.0
+      ],
+      "size_diff_mm_b": [
+        0.0,
+        0.0
+      ],
+      "reason": null,
+      "elapsed_ms": 0.01
+    },
+    "task5_align": {
+      "ok": true,
+      "transform": [
+        [
+          1.0,
+          -0.0,
+          -2.43e-06
+        ],
+        [
+          0.0,
+          1.0,
+          -2.81e-06
+        ]
+      ],
+      "coarse_method": "feature_ransac",
+      "fine_method": "ecc_masked",
+      "inlier_count": 446,
+      "inlier_rmse_px": 0.0001,
+      "stable_coverage_ratio": 0.9307,
+      "reason": null,
+      "inlier_max_err_px": 0.0004,
+      "elapsed_ms": 354.11
+    },
+    "task6_fit_meter": {
+      "passed": true,
+      "inlier_max_err_px": 0.0004,
+      "inlier_rmse_px": 0.0001,
+      "grid_shift_px": [
+        [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          null,
+          0.0
+        ],
+        [
+          0.0,
+          null,
+          null,
+          null,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.012,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "grid_max_shift_px": 0.012,
+      "flagged_cells": [],
+      "reason": null,
+      "visuals": {
+        "overlay": "tests/synth/runs/case_3_delete_punct/overlay.png",
+        "absdiff_heatmap": "tests/synth/runs/case_3_delete_punct/absdiff_heatmap.png",
+        "grid_shift": "tests/synth/runs/case_3_delete_punct/grid_shift.png"
+      },
+      "elapsed_ms": 42.45
+    }
+  },
+  "status": "PASS",
+  "exit_code": 0,
+  "profile": {
+    "profile_id": "default_v1",
+    "px_per_mm": 11.811,
+    "default_pages": {
+      "brand": 1,
+      "vendor": 1
+    },
+    "size_tolerance_mm": 1.5,
+    "aspect_tolerance": 0.003,
+    "align": {
+      "min_ransac_inliers": 12,
+      "ransac_reproj_threshold_px": 2.0,
+      "stable_diff_threshold": 25,
+      "ecc_max_iter": 200,
+      "ecc_eps": 1e-06,
+      "max_inlier_rmse_px": 1.0,
+      "grid": [
+        10,
+        4
+      ],
+      "max_grid_shift_px": 1.0,
+      "min_cell_std": 8.0
+    },
+    "phase2": {
+      "pixelmatch_threshold": 0.1,
+      "include_aa": false,
+      "neighbor_radius_px": 1,
+      "dilate_px": 6,
+      "min_area_px": 4,
+      "merge_gap_px": 4,
+      "local_align": {
+        "grid_cell_mm": 20,
+        "grid_overlap": 0.5,
+        "max_local_shift_px": 3,
+        "min_texture_std": 4.0,
+        "min_corr_response": 0.25
+      },
+      "move_threshold_mm": 0.25,
+      "shift_only_min_shift_px": 0.5,
+      "ignore_zones_mm": []
+    }
+  }
+}

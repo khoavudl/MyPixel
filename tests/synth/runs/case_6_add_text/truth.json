@@ -1,0 +1,19 @@
+[
+  {
+    "id": 1,
+    "bbox_mm": [
+      44.79,
+      69.17,
+      28.7,
+      3.22
+    ],
+    "expected_kind": "content",
+    "note": "Thêm dòng chữ Xuat xu: Viet Nam",
+    "bbox_px": [
+      529,
+      817,
+      339,
+      38
+    ]
+  }
+]

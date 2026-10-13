@@ -1,0 +1,19 @@
+[
+  {
+    "id": 1,
+    "bbox_mm": [
+      71.04,
+      18.71,
+      1.52,
+      3.64
+    ],
+    "expected_kind": "content",
+    "note": "Xóa ký tự O trong BO",
+    "bbox_px": [
+      839,
+      221,
+      18,
+      43
+    ]
+  }
+]
