@@ -2,6 +2,8 @@ import React, { useRef, useState } from 'react';
 import { Loader2, Eye } from 'lucide-react';
 import { useInspectionStore } from '../store/useInspectionStore';
 import { useSyncedViewport } from '../hooks/useSyncedViewport';
+import { SvgAnnotationLayer } from './SvgAnnotationLayer';
+import { LoupeMagnifier } from './LoupeMagnifier';
 
 interface CanvasViewerProps {
   title: string;
@@ -21,7 +23,13 @@ export const CanvasViewer: React.FC<CanvasViewerProps> = ({
   altImageUrl,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const { viewport, activeTool, isFlickering, flickerTarget } = useInspectionStore();
+  const {
+    viewport,
+    activeTool,
+    isFlickering,
+    flickerTarget,
+    setNaturalImageSize,
+  } = useInspectionStore();
   const { onMouseDown, isDragging } = useSyncedViewport(containerRef);
 
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -44,6 +52,8 @@ export const CanvasViewer: React.FC<CanvasViewerProps> = ({
           ? isDragging
             ? 'cursor-grabbing'
             : 'cursor-grab'
+          : activeTool === 'loupe'
+          ? 'cursor-none'
           : 'cursor-crosshair'
       }`}
     >
@@ -92,23 +102,46 @@ export const CanvasViewer: React.FC<CanvasViewerProps> = ({
         }}
       >
         {activeImageSrc ? (
-          <img
-            src={activeImageSrc}
-            alt={title}
-            draggable={false}
-            onLoad={(e) => {
-              setImageLoaded(true);
-              const img = e.currentTarget;
-              setNaturalSize({ w: img.naturalWidth, h: img.naturalHeight });
-            }}
-            className="block pointer-events-none max-w-none shadow-2xl"
-          />
+          <div className="relative">
+            <img
+              src={activeImageSrc}
+              alt={title}
+              draggable={false}
+              onLoad={(e) => {
+                setImageLoaded(true);
+                const img = e.currentTarget;
+                const size = { w: img.naturalWidth, h: img.naturalHeight };
+                setNaturalSize(size);
+                setNaturalImageSize(size);
+              }}
+              className="block pointer-events-none max-w-none shadow-2xl"
+            />
+
+            {/* Cross-canvas synchronized SVG Bounding Box overlay */}
+            {naturalSize && (
+              <SvgAnnotationLayer
+                imageWidth={naturalSize.w}
+                imageHeight={naturalSize.h}
+              />
+            )}
+          </div>
         ) : (
           <div className="w-[800px] h-[600px] flex items-center justify-center text-slate-600 text-sm">
             Chưa có ảnh kết quả
           </div>
         )}
       </div>
+
+      {/* Loupe Magnifier Tool */}
+      {naturalSize && (
+        <LoupeMagnifier
+          containerRef={containerRef}
+          imageUrl={activeImageSrc}
+          imageWidth={naturalSize.w}
+          imageHeight={naturalSize.h}
+        />
+      )}
     </div>
   );
 };
+

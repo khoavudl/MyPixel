@@ -40,9 +40,9 @@ export const useHotkeys = (onFitToScreen?: () => void) => {
       } else if (e.key === 'h' || e.key === 'H') {
         setActiveTool('pan');
       } else if (e.key === 'b' || e.key === 'B') {
-        setActiveTool('box');
+        setActiveTool(activeTool === 'box' ? 'pan' : 'box');
       } else if (e.key === 'l' || e.key === 'L') {
-        setActiveTool('loupe');
+        setActiveTool(activeTool === 'loupe' ? 'pan' : 'loupe');
       } else if (e.key === 's' || e.key === 'S') {
         setIsSynced(!isSynced);
       } else if (e.key === '1') {

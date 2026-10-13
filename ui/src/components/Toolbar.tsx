@@ -1,13 +1,15 @@
 import React from 'react';
 import {
   Hand,
+  Square,
+  Search,
   ZoomIn,
   ZoomOut,
   Maximize2,
   Minimize2,
-  RefreshCw,
   RotateCcw,
   Eye,
+  ListFilter,
 } from 'lucide-react';
 import { useInspectionStore } from '../store/useInspectionStore';
 
@@ -25,12 +27,13 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     setActiveTool,
     viewport,
     setViewport,
-    isSynced,
-    setIsSynced,
     isFlickering,
     setIsFlickering,
     toggleFlickerTarget,
     flickerTarget,
+    annotations,
+    isSidebarOpen,
+    setIsSidebarOpen,
     runId,
     resetAll,
   } = useInspectionStore();
@@ -72,7 +75,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         <button
           onClick={() => setActiveTool('pan')}
           title="Công cụ Di chuyển (H / Giữ chuột)"
-          className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors ${
+          className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
             activeTool === 'pan'
               ? 'bg-blue-600 text-white shadow-sm'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
@@ -80,6 +83,34 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         >
           <Hand className="w-3.5 h-3.5" />
           <span className="hidden md:inline">Pan (H)</span>
+        </button>
+
+        {/* Tool: Draw Box */}
+        <button
+          onClick={() => setActiveTool(activeTool === 'box' ? 'pan' : 'box')}
+          title="Vẽ Bounding Box bắt lỗi đồng bộ 4 khung (B)"
+          className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
+            activeTool === 'box'
+              ? 'bg-amber-600 text-white shadow-sm ring-1 ring-amber-400'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+          }`}
+        >
+          <Square className="w-3.5 h-3.5" />
+          <span className="hidden md:inline">Vẽ Box (B)</span>
+        </button>
+
+        {/* Tool: Loupe Magnifier */}
+        <button
+          onClick={() => setActiveTool(activeTool === 'loupe' ? 'pan' : 'loupe')}
+          title="Kính lúp soi nét sub-pixel 4x đồng bộ 4 khung (L)"
+          className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
+            activeTool === 'loupe'
+              ? 'bg-cyan-600 text-white shadow-sm ring-1 ring-cyan-400'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+          }`}
+        >
+          <Search className="w-3.5 h-3.5" />
+          <span className="hidden md:inline">Kính Lúp (L)</span>
         </button>
 
         {/* Tool: Flicker / Blink Compare */}
@@ -93,7 +124,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             }
           }}
           title="Chớp tắt đối chiếu Brand & Vendor (Bấm giữ phím Space)"
-          className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors ${
+          className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
             isFlickering
               ? 'bg-amber-500 text-slate-950 font-bold animate-pulse'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
@@ -153,27 +184,26 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         </button>
       </div>
 
-      {/* Right: Sync Status & Shortcuts hint */}
+      {/* Right: Defect Punch List Toggle */}
       <div className="flex items-center gap-3">
-        {/* Sync Viewports Toggle */}
+        {/* Defect List Sidebar Toggle */}
         <button
-          onClick={() => setIsSynced(!isSynced)}
-          title="Bật/Tắt đồng bộ chuột giữa cả 4 khung hình (S)"
-          className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors border ${
-            isSynced
-              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-              : 'bg-slate-800/60 border-slate-700 text-slate-400'
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          title="Bật/Tắt danh sách lỗi (Punch List)"
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-colors border cursor-pointer ${
+            isSidebarOpen
+              ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
+              : 'bg-slate-800/80 border-slate-700 text-slate-300 hover:bg-slate-700'
           }`}
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${isSynced ? 'animate-none' : ''}`} />
-          <span>4-Way Sync: {isSynced ? 'BẬT' : 'TẮT'}</span>
+          <ListFilter className="w-3.5 h-3.5" />
+          <span>Danh Sách Lỗi</span>
+          {annotations.length > 0 && (
+            <span className="px-1.5 py-0.2 text-[10px] rounded-full bg-amber-500 text-slate-950 font-bold">
+              {annotations.length}
+            </span>
+          )}
         </button>
-
-        <div className="hidden xl:flex items-center gap-2 text-[11px] text-slate-500 font-medium">
-          <span>Space: Chớp tắt</span>
-          <span>•</span>
-          <span>Lăn chuột: Zoom</span>
-        </div>
       </div>
     </div>
   );

@@ -7,7 +7,7 @@ export const ViewportGrid: React.FC = () => {
   const images = runStatus?.images;
 
   return (
-    <div className="flex-1 w-full h-[calc(100vh-3.5rem)] p-3 bg-slate-950 flex flex-col md:flex-row gap-3 overflow-hidden select-none">
+    <div className="flex-1 min-w-0 h-[calc(100vh-3.5rem)] p-3 bg-slate-950 flex flex-col md:flex-row gap-3 overflow-hidden select-none">
       {/* Left Column: 2 Large Comparative Views (Brand & Vendor) */}
       <div className="flex-1 flex flex-col gap-3 min-w-0 h-full">
         {/* Top: Brand Cropped */}
@@ -36,8 +36,8 @@ export const ViewportGrid: React.FC = () => {
         </div>
       </div>
 
-      {/* Right Column: 2 Secondary Diagnostic Views (Overlay & Heatmap) */}
-      <div className="w-full md:w-[38%] flex flex-col gap-3 min-w-0 h-full">
+      {/* Right Column: 2 Secondary Diagnostic Views (Overlay & Heatmap - Equal 50/50 Width) */}
+      <div className="flex-1 flex flex-col gap-3 min-w-0 h-full">
         {/* Top Right: Overlay */}
         <div className="flex-1 min-h-0 relative">
           <CanvasViewer

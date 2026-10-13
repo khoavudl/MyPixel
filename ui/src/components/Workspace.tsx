@@ -1,6 +1,8 @@
 import React, { useCallback } from 'react';
 import { Toolbar } from './Toolbar';
 import { ViewportGrid } from './ViewportGrid';
+import { DefectSidebar } from './DefectSidebar';
+import { AnnotationModal } from './AnnotationModal';
 import { useHotkeys } from '../hooks/useHotkeys';
 import { useInspectionStore } from '../store/useInspectionStore';
 
@@ -44,7 +46,11 @@ export const Workspace: React.FC = () => {
   return (
     <div className="flex-1 flex flex-col w-full h-full overflow-hidden bg-slate-950">
       <Toolbar onFitToScreen={handleFitToScreen} onActualSize={handleActualSize} />
-      <ViewportGrid />
+      <div className="flex-1 flex flex-row overflow-hidden relative">
+        <ViewportGrid />
+        <DefectSidebar />
+      </div>
+      <AnnotationModal />
     </div>
   );
 };

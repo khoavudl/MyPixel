@@ -1,6 +1,6 @@
 # TIẾN ĐỘ DỰ ÁN (PROJECT PROGRESS) – MYPIXEL (ARTDIFF)
 > **Cập nhật lần cuối:** 2026-10-13  
-> **Trạng thái hiện tại:** Đã hoàn thành Milestone 2A.1 & Milestone 2A.2. Sẵn sàng cho Milestone 2A.3.  
+> **Trạng thái hiện tại:** Đã hoàn thành Milestone 2A.1, 2A.2, 2A.3 & 2A.4. Sẵn sàng cho Milestone 2A.5 (1-Click Export Report).  
 > **Tổng số bài test tự động:** 34/34 PASS (100%)
 
 ---
@@ -13,8 +13,8 @@
 | **Milestone 2A.1** | **Backend API & WebSocket Runner** (`server/`): REST endpoints, background runner bọc Phase 1, phát log WebSocket, serve static images, lưu annotations, xuất báo cáo | **HOÀN TẤT** | Đã test trọn luồng bằng `TestClient` trong [`tests/test_server.py`](file:///Users/tindn/Downloads/MyPixel-v1/tests/test_server.py). 4/4 server tests PASS. |
 | **Milestone 2A.2** | **UI Dropzone & Real-time Console** (`ui/`): Kéo thả 2 file PDF, cấu hình kích thước WxH mm và số trang, bấm Analyze, hiển thị log WebSocket nhảy từng dòng theo thời gian thực, tự động chuyển view | **HOÀN TẤT** | `npm run build` thành công (1.17s). Đã tích hợp serve trực tiếp qua `http://localhost:8000`. |
 | **Milestone 2A.3** | **4-Way Synced Viewport Canvas**: 2 khung lớn bên trái (Brand, Vendor); 2 khung nhỏ bên phải (Overlay, Heatmap). Đồng bộ Pan & Zoom 60 FPS qua CSS GPU transform + Phím tắt Space chớp tắt (Flicker Compare) | **HOÀN TẤT** | Đã hoàn thành `ViewportGrid.tsx`, `CanvasViewer.tsx`, `Toolbar.tsx`, `useSyncedViewport.ts`, `useHotkeys.ts`. Build sạch (1.23s). |
-| **Milestone 2A.4** | **Kính lúp (Loupe 4x-8x) & Cross-Canvas Annotations**: Rê chuột soi nét sub-pixel; vẽ box ở bất kỳ khung nào thì tự động hiện ở cả 4 khung; modal nhập note/tag lỗi; sidebar danh sách lỗi | *CHỜ DUYỆT* | Kế hoạch tiếp theo. |
-| **Milestone 2A.5** | **1-Click Export Report**: Xuất biên bản kiểm tra (HTML / PDF / JSON) có ảnh cắt cận cảnh từng box và bảng ghi chú chi tiết | *CHƯA LÀM* | Kế hoạch sau 2A.4. |
+| **Milestone 2A.4** | **Kính lúp (Loupe 4x-8x) & Cross-Canvas Annotations**: Rê chuột soi nét sub-pixel đồng thời cả 4 khung; vẽ box ở bất kỳ khung nào thì tự động hiện ở cả 4 khung; toggle phím tắt B/L quay về Pan; thu gọn sidebar lỗi còn 70% (w-56); cân bằng 50/50 khung chính và khung chẩn đoán | **HOÀN TẤT** | Đã hoàn thiện `LoupeMagnifier.tsx` (4-way synced), `SvgAnnotationLayer.tsx`, `AnnotationModal.tsx`, `DefectSidebar.tsx` (w-56), `ViewportGrid.tsx` (50/50 split). Build sạch (1.42s). |
+| **Milestone 2A.5** | **1-Click Export Report**: Xuất biên bản kiểm tra (HTML / PDF / JSON) có ảnh cắt cận cảnh từng box và bảng ghi chú chi tiết | *CHỜ DUYỆT* | Kế hoạch tiếp theo. |
 | **Phase 2B** | **Tích hợp Gợi ý Khác biệt Tự động (Assisted Auto-diff)**: Tự động vẽ sẵn các box nghi vấn lên UI cho người dùng duyệt | *TƯƠNG LAI* | Sau khi hoàn thiện UI Phase 2A. |
 
 ---
@@ -47,10 +47,14 @@
 * [`ui/src/hooks/useHotkeys.ts`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/hooks/useHotkeys.ts): Bắt phím tắt bàn phím: `Space` (Flicker compare), `H` (Pan), `0` (Fit), `1` (100%), `+`/`-` (Zoom), `S` (Toggle sync).
 * [`ui/src/components/CanvasViewer.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/CanvasViewer.tsx): Khung hiển thị ảnh độc lập áp dụng GPU Hardware-Accelerated transform (`translate3d` và `scale`) cho ảnh độ phân giải lớn, hỗ trợ chế độ Flicker đối chiếu.
 * [`ui/src/components/ViewportGrid.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/ViewportGrid.tsx): Bố cục chia cột 4 khung hình (2 lớn bên trái 62%, 2 nhỏ bên phải 38%).
-* [`ui/src/components/Toolbar.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/Toolbar.tsx): Thanh công cụ kiểm định chuyên dụng: Pan, Zoom, Flicker, Fit screen, 100%, 4-Way Sync toggle.
-* [`ui/src/components/Workspace.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/Workspace.tsx): Trạm làm việc kiểm định hoàn chỉnh kết hợp Toolbar, ViewportGrid và Hotkeys.
+* [`ui/src/components/Toolbar.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/Toolbar.tsx): Thanh công cụ kiểm định chuyên dụng: Pan (H), Draw Box (B), Loupe (L), Flicker (Space), Zoom, Fit screen (0), 100% (1), 4-Way Sync toggle (S), và nút mở Danh sách lỗi.
+* [`ui/src/components/SvgAnnotationLayer.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/SvgAnnotationLayer.tsx): Lớp vẽ SVG đồng bộ 4 khung hình. Vẽ box trên bất kỳ khung nào thì hiển thị tức thì trên cả 4 khung với toạ độ chuẩn hoá $[0,1]$ và mm thực tế.
+* [`ui/src/components/LoupeMagnifier.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/LoupeMagnifier.tsx): Kính lúp tròn phóng đại 4x soi nét sub-pixel di chuyển mượt theo chuột, hiển thị toạ độ mm thực và tâm ngắm crosshair.
+* [`ui/src/components/AnnotationModal.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/AnnotationModal.tsx): Hộp thoại modal gán nhãn lỗi (Tag, Mức độ nghiêm trọng, Note), hiển thị toạ độ mm và tự động đồng bộ API backend.
+* [`ui/src/components/DefectSidebar.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/DefectSidebar.tsx): Thanh sidebar danh sách lỗi (Punch List) phân loại Critical/Major/Minor, hỗ trợ bấm vào là cả 4 khung hình bay đến tâm box (`jumpToBox`), nút 1-Click Export.
+* [`ui/src/components/Workspace.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/Workspace.tsx): Trạm làm việc kiểm định hoàn chỉnh kết hợp Toolbar, ViewportGrid, DefectSidebar, AnnotationModal và Hotkeys.
 * [`ui/src/App.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/App.tsx) & [`ui/src/main.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/main.tsx): Layout Dark Mode hoàn chỉnh.
-* [`ui/dist/`](file:///Users/tindn/Downloads/MyPixel-v1/ui/dist): Bản build production sẵn sàng (1.23s).
+* [`ui/dist/`](file:///Users/tindn/Downloads/MyPixel-v1/ui/dist): Bản build production sẵn sàng (1.31s).
 
 ---
 
