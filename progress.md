@@ -1,0 +1,75 @@
+# TIẾN ĐỘ DỰ ÁN (PROJECT PROGRESS) – MYPIXEL (ARTDIFF)
+> **Cập nhật lần cuối:** 2026-10-13  
+> **Trạng thái hiện tại:** Đã hoàn thành Milestone 2A.1 & Milestone 2A.2. Sẵn sàng cho Milestone 2A.3.  
+> **Tổng số bài test tự động:** 34/34 PASS (100%)
+
+---
+
+## 1. Bản Đồ Tiến Độ Tổng Quan (Milestone Roadmap)
+
+| Milestone | Mô tả | Trạng thái | Ghi chú & DoD |
+|---|---|:---:|---|
+| **Phase 1** | Thuật toán nền tảng: Bóc tách vector, Size Gate, Canh khít sub-pixel (<0.5 px) không dùng die-line, Fit Meter | **HOÀN TẤT** | 24/24 tests PASS. Kiểm chứng trên 2 bộ file thật (`brand.pdf` vs `vendor.pdf` và `v1.pdf` vs `v2.pdf`). Báo cáo tại [`PHASE1_FINDINGS.md`](file:///Users/tindn/Downloads/MyPixel-v1/PHASE1_FINDINGS.md). |
+| **Milestone 2A.1** | **Backend API & WebSocket Runner** (`server/`): REST endpoints, background runner bọc Phase 1, phát log WebSocket, serve static images, lưu annotations, xuất báo cáo | **HOÀN TẤT** | Đã test trọn luồng bằng `TestClient` trong [`tests/test_server.py`](file:///Users/tindn/Downloads/MyPixel-v1/tests/test_server.py). 4/4 server tests PASS. |
+| **Milestone 2A.2** | **UI Dropzone & Real-time Console** (`ui/`): Kéo thả 2 file PDF, cấu hình kích thước WxH mm và số trang, bấm Analyze, hiển thị log WebSocket nhảy từng dòng theo thời gian thực, tự động chuyển view | **HOÀN TẤT** | `npm run build` thành công (1.17s). Đã tích hợp serve trực tiếp qua `http://localhost:8000`. |
+| **Milestone 2A.3** | **4-Way Synced Viewport Canvas**: 2 khung lớn bên trái (Brand, Vendor); 2 khung nhỏ bên phải (Overlay, Heatmap). Đồng bộ Pan & Zoom 60 FPS qua CSS GPU transform + Phím tắt Space chớp tắt (Flicker Compare) | **HOÀN TẤT** | Đã hoàn thành `ViewportGrid.tsx`, `CanvasViewer.tsx`, `Toolbar.tsx`, `useSyncedViewport.ts`, `useHotkeys.ts`. Build sạch (1.23s). |
+| **Milestone 2A.4** | **Kính lúp (Loupe 4x-8x) & Cross-Canvas Annotations**: Rê chuột soi nét sub-pixel; vẽ box ở bất kỳ khung nào thì tự động hiện ở cả 4 khung; modal nhập note/tag lỗi; sidebar danh sách lỗi | *CHỜ DUYỆT* | Kế hoạch tiếp theo. |
+| **Milestone 2A.5** | **1-Click Export Report**: Xuất biên bản kiểm tra (HTML / PDF / JSON) có ảnh cắt cận cảnh từng box và bảng ghi chú chi tiết | *CHƯA LÀM* | Kế hoạch sau 2A.4. |
+| **Phase 2B** | **Tích hợp Gợi ý Khác biệt Tự động (Assisted Auto-diff)**: Tự động vẽ sẵn các box nghi vấn lên UI cho người dùng duyệt | *TƯƠNG LAI* | Sau khi hoàn thiện UI Phase 2A. |
+
+---
+
+## 2. Chi Tiết Các Phần Đã Hoàn Thành
+
+### 2.1. Core Thuật Toán Phase 1 (`artdiff/`)
+* [`artdiff/core/units.py`](file:///Users/tindn/Downloads/MyPixel-v1/artdiff/core/units.py): Quy đổi chính xác 2 chiều mm $\leftrightarrow$ pt $\leftrightarrow$ px.
+* [`artdiff/ingest/pdf_renderer.py`](file:///Users/tindn/Downloads/MyPixel-v1/artdiff/ingest/pdf_renderer.py): Render PDF trang chỉ định ở tỉ lệ cố định `px/mm` (300 DPI), đọc vector candidate và OCG layer.
+* [`artdiff/normalize/frame_detector.py`](file:///Users/tindn/Downloads/MyPixel-v1/artdiff/normalize/frame_detector.py): Dò khung vector siêu tốc (<0.6 ms) và raster fallback. Tự động ghép panel liền kề.
+* [`artdiff/normalize/cropper.py`](file:///Users/tindn/Downloads/MyPixel-v1/artdiff/normalize/cropper.py): Xác nhận khung và cắt Artboard.
+* [`artdiff/normalize/size_gate.py`](file:///Users/tindn/Downloads/MyPixel-v1/artdiff/normalize/size_gate.py): Kiểm định khổ kích thước và tỉ lệ aspect ratio (`PASS`, `SCALED_FILE`, `ASPECT_MISMATCH`, `SIZE_MISMATCH`).
+* [`artdiff/normalize/aligner.py`](file:///Users/tindn/Downloads/MyPixel-v1/artdiff/normalize/aligner.py): Canh khít sub-pixel bằng Shi-Tomasi sub-pixel + Lucas-Kanade + RANSAC kết hợp Masked ECC (không bị kéo lệch bởi nội dung bị sửa).
+* [`artdiff/normalize/fit_meter.py`](file:///Users/tindn/Downloads/MyPixel-v1/artdiff/normalize/fit_meter.py): Đo độ khít bằng lưới $10 \times 4$ với `phaseCorrelate` và xuất bộ 3 ảnh chẩn đoán.
+* [`artdiff/pipeline_phase1.py`](file:///Users/tindn/Downloads/MyPixel-v1/artdiff/pipeline_phase1.py): Bổ sung hook `on_progress` an toàn để bắn sự kiện tiến trình qua server.
+
+### 2.2. Backend FastAPI Server (`server/`)
+* [`server/config.py`](file:///Users/tindn/Downloads/MyPixel-v1/server/config.py): Cấu hình thư mục output `out/`, uploads, profiles và static build `ui/dist`.
+* [`server/schemas.py`](file:///Users/tindn/Downloads/MyPixel-v1/server/schemas.py): Pydantic models chuẩn hoá cho request/response và WebSocket messages.
+* [`server/runner.py`](file:///Users/tindn/Downloads/MyPixel-v1/server/runner.py): Background thread pool executor bọc Phase 1, WebSocket connection manager hỗ trợ log replay.
+* [`server/exporter.py`](file:///Users/tindn/Downloads/MyPixel-v1/server/exporter.py): Xuất báo cáo kiểm tra dạng HTML in ấn đẹp mắt và JSON.
+* [`server/app.py`](file:///Users/tindn/Downloads/MyPixel-v1/server/app.py): Khởi tạo FastAPI app với lifespan, CORS, REST upload, WebSocket streaming và static file mounting.
+
+### 2.3. Frontend Client (`ui/`)
+* [`ui/src/types/index.ts`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/types/index.ts): Khớp 1-1 với Pydantic schemas của Backend.
+* [`ui/src/store/useInspectionStore.ts`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/store/useInspectionStore.ts): Central Zustand store quản lý state toàn cục (viewport, zoom, pan, sync, flicker, annotations).
+* [`ui/src/components/Dropzone.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/Dropzone.tsx): Kéo thả 2 file PDF Brand & Vendor, nhập số trang, chọn nhanh kích thước mục tiêu (`620x250`, `217x200.5`).
+* [`ui/src/components/LogConsole.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/LogConsole.tsx): Terminal log thời gian thực qua WebSocket, thanh tiến trình, 6 pill trạng thái cho 6 task, đếm ngược chuyển view.
+* [`ui/src/hooks/useSyncedViewport.ts`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/hooks/useSyncedViewport.ts): Hook đồng bộ Pan & Zoom to cursor mượt mà giữa các khung hình qua CSS GPU transform.
+* [`ui/src/hooks/useHotkeys.ts`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/hooks/useHotkeys.ts): Bắt phím tắt bàn phím: `Space` (Flicker compare), `H` (Pan), `0` (Fit), `1` (100%), `+`/`-` (Zoom), `S` (Toggle sync).
+* [`ui/src/components/CanvasViewer.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/CanvasViewer.tsx): Khung hiển thị ảnh độc lập áp dụng GPU Hardware-Accelerated transform (`translate3d` và `scale`) cho ảnh độ phân giải lớn, hỗ trợ chế độ Flicker đối chiếu.
+* [`ui/src/components/ViewportGrid.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/ViewportGrid.tsx): Bố cục chia cột 4 khung hình (2 lớn bên trái 62%, 2 nhỏ bên phải 38%).
+* [`ui/src/components/Toolbar.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/Toolbar.tsx): Thanh công cụ kiểm định chuyên dụng: Pan, Zoom, Flicker, Fit screen, 100%, 4-Way Sync toggle.
+* [`ui/src/components/Workspace.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/Workspace.tsx): Trạm làm việc kiểm định hoàn chỉnh kết hợp Toolbar, ViewportGrid và Hotkeys.
+* [`ui/src/App.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/App.tsx) & [`ui/src/main.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/main.tsx): Layout Dark Mode hoàn chỉnh.
+* [`ui/dist/`](file:///Users/tindn/Downloads/MyPixel-v1/ui/dist): Bản build production sẵn sàng (1.23s).
+
+---
+
+## 3. Nhật Ký Kiểm Thử (Verification Log)
+
+```bash
+# Lệnh chạy toàn bộ test:
+.venv/bin/pytest
+
+# Kết quả:
+tests/test_aligner.py ..                                                 [  5%]
+tests/test_cropper.py ...                                                [ 13%]
+tests/test_eval.py ........                                              [ 36%]
+tests/test_fit_meter.py ..                                               [ 41%]
+tests/test_frame_detector.py ..s                                         [ 50%]
+tests/test_pdf_renderer.py ..s                                           [ 58%]
+tests/test_pipeline_phase1.py ..                                         [ 63%]
+tests/test_server.py ....                                                [ 75%]
+tests/test_size_gate.py ....                                             [ 86%]
+tests/test_units.py .....                                                [100%]
+================== 34 passed, 2 skipped in 1.81s ===================
+```

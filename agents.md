@@ -17,6 +17,13 @@ Sứ mệnh của Agent là hiện thực hóa kiến trúc mới tại [`new_ar
 
 Mọi Agent khi thực thi code trên repository này **BẮT BUỘC TUÂN THỦ** các nguyên tắc sau:
 
+### ⚠️ R0. BẮT BUỘC ĐỌC `progress.md` & `new_architecture.md` ĐẦU TIÊN
+- Khi bắt đầu bất kỳ phiên làm việc nào hoặc nhận bất kỳ yêu cầu mới nào, Agent **BẮT BUỘC PHẢI ĐỌC 2 FILE NÀY TRƯỚC TIÊN**:
+  1. [`progress.md`](file:///Users/tindn/Downloads/MyPixel-v1/progress.md): Để biết chính xác các Milestone nào đã hoàn thành, kết quả test hiện tại ra sao, và Milestone nào là việc tiếp theo cần làm theo roadmap.
+  2. [`new_architecture.md`](file:///Users/tindn/Downloads/MyPixel-v1/new_architecture.md): Để nắm vững kiến trúc kỹ thuật, cấu trúc thư mục, state store và các hợp đồng đồng bộ dữ liệu.
+- **Nghiêm cấm:** Không tự ý suy đoán trạng thái dự án, không làm nhảy cóc Milestone, không viết code khi chưa nắm rõ ngữ cảnh từ 2 file trên.
+- Sau khi hoàn thành bất kỳ Task/Milestone nào, Agent **BẮT BUỘC PHẢI CẬP NHẬT `progress.md`** để lưu vết tiến độ cho phiên tiếp theo.
+
 ### ⚠️ R1. BẢO VỆ TUYỆT ĐỐI PHASE 1
 - **Không tự ý sửa đổi** các file trong thư mục [`artdiff/`](file:///Users/tindn/Downloads/MyPixel-v1/artdiff/) trừ khi cần bổ sung hook truyền log hoặc tham số xuất ảnh đã được quy định rõ trong spec.
 - 24/24 unit & integration tests của Phase 1 đang đạt 100% pass trên 2 bộ file thật. Bất kỳ thay đổi nào làm gãy tests Phase 1 đều bị coi là lỗi nghiêm trọng.
@@ -85,13 +92,13 @@ flowchart LR
 
 Mỗi khi Agent bắt đầu một Task mới, Agent **phải tuân theo chu trình 5 bước**:
 
-1. **Bước 1 – Đọc hiểu (Read & Confirm):** Đọc kỹ phần mô tả Task trong [`new_architecture.md`](file:///Users/tindn/Downloads/MyPixel-v1/new_architecture.md). Xác định rõ Input, Output và các file bị ảnh hưởng.
+1. **Bước 1 – Đọc hiểu (Read & Confirm):** BẮT BUỘC đọc [`progress.md`](file:///Users/tindn/Downloads/MyPixel-v1/progress.md) để xác định chính xác tiến độ hiện tại và đọc [`new_architecture.md`](file:///Users/tindn/Downloads/MyPixel-v1/new_architecture.md) để nắm spec & kiến trúc. Xác định rõ Input, Output và các file bị ảnh hưởng.
 2. **Bước 2 – Khảo sát môi trường (Verify Prerequisites):** Kiểm tra các dependencies, file mẫu cần thiết đã sẵn sàng chưa.
 3. **Bước 3 – Viết code tối giản & tập trung (Focused Implementation):** Chỉ viết đúng phạm vi của Task đó. Giữ nguyên docstring và comment của các file liên quan.
 4. **Bước 4 – Kiểm thử ngay (Verify Immediately):**
    - Với Backend: Chạy lệnh test hoặc curl API để đảm bảo response mã 200 và dữ liệu đúng schema.
    - Với Frontend: Kiểm tra build (`npm run build`), kiểm tra render không bị warning/error trên console.
-5. **Bước 5 – Báo cáo kết quả (Report & Next Step):** Thông báo ngắn gọn cho người dùng những gì đã làm, kết quả kiểm thử, và xin ý kiến trước khi sang Task tiếp theo.
+5. **Bước 5 – Cập nhật Tiến độ & Báo cáo (Update Progress & Report):** BẮT BUỘC cập nhật [`progress.md`](file:///Users/tindn/Downloads/MyPixel-v1/progress.md) để lưu lại vết công việc đã xong, sau đó thông báo ngắn gọn cho người dùng những gì đã làm, kết quả kiểm thử, và xin ý kiến trước khi sang Task tiếp theo.
 
 ---
 

@@ -21,9 +21,10 @@ from fastapi import (
 )
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from artdiff.pipeline_phase1 import parse_size_mm
-from server.config import OUT_DIR
+from server.config import OUT_DIR, UI_DIST_DIR
 from server.exporter import export_audit_report
 from server.runner import runner
 from server.schemas import (
@@ -224,3 +225,8 @@ async def export_report_endpoint(request: ExportRequest) -> FileResponse:
         filename=exported_file.name,
         media_type="text/html" if request.format == "html" else "application/json",
     )
+
+
+# Mount frontend production build if available
+if UI_DIST_DIR.is_dir():
+    app.mount("/", StaticFiles(directory=str(UI_DIST_DIR), html=True), name="frontend")

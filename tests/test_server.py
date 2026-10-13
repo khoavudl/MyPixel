@@ -32,6 +32,13 @@ def test_health_check(client):
     assert data["status"] == "ok"
 
 
+def test_frontend_served(client):
+    response = client.get("/")
+    assert response.status_code == 200
+    assert "text/html" in response.headers["content-type"]
+    assert "MyPixel" in response.text
+
+
 def test_analyze_and_websocket_stream(client, sample_pdfs):
     brand_pdf, vendor_pdf = sample_pdfs
 
