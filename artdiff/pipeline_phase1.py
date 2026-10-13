@@ -119,12 +119,35 @@ def run_phase1(
     out_root: str | Path = "out",
     run_id: str | None = None,
     input_fn: Callable[[str], str] = input,
+    on_progress: Callable[[dict[str, Any]], None] | None = None,
 ) -> tuple[int, dict[str, Any], Path]:
     """Execute the complete Phase 1 pipeline and write report.json + diagnostic images."""
     if run_id is None:
         run_id = datetime.now(timezone.utc).strftime("run_%Y%m%d_%H%M%S_%f")
     run_dir = Path(out_root) / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
+
+    def _notify(
+        msg_type: str,
+        task: str | None,
+        status: str,
+        message: str,
+        details: dict[str, Any] | None = None,
+    ) -> None:
+        if on_progress is not None:
+            try:
+                on_progress(
+                    {
+                        "type": msg_type,
+                        "task": task,
+                        "status": status,
+                        "message": message,
+                        "timestamp": time.time(),
+                        "details": details,
+                    }
+                )
+            except Exception:
+                pass
 
     report: dict[str, Any] = {
         "run_id": run_id,
@@ -146,6 +169,7 @@ def run_phase1(
         px_per_mm = float(profile.get("px_per_mm", 11.811))
 
         # --- Task 1: Render PDF pages ---
+        _notify("step_start", "task1_render", "IN_PROGRESS", "Rendering Brand and Vendor PDF pages...")
         t0 = time.perf_counter()
         brand_raster = render_page(
             brand_pdf, page_number=brand_page, px_per_mm=px_per_mm, source="brand"
@@ -178,8 +202,10 @@ def run_phase1(
             }
         )
         report["tasks"]["task1_render"] = {"ok": True, "elapsed_ms": t1_ms}
+        _notify("step_end", "task1_render", "SUCCESS", f"Rendered PDF pages in {t1_ms}ms")
 
         # --- Task 2: Frame Detection (both Vector and Raster) ---
+        _notify("step_start", "task2_frame_detect", "IN_PROGRESS", f"Detecting target artwork frame {target_size_mm[0]}x{target_size_mm[1]} mm...")
         t0 = time.perf_counter()
         brand_det = detect_frame(brand_raster, target_size_mm, profile)
         vendor_det = detect_frame(vendor_raster, target_size_mm, profile)
@@ -201,8 +227,10 @@ def run_phase1(
                 "vendor": str(vendor_preview),
             },
         }
+        _notify("step_end", "task2_frame_detect", "SUCCESS", f"Detected artwork frames in {t2_ms}ms (Brand: {brand_det.selected.method}, Vendor: {vendor_det.selected.method})")
 
         # --- Task 3: Confirm & Crop ---
+        _notify("step_start", "task3_crop", "IN_PROGRESS", "Cropping pages to detected artboards...")
         t0 = time.perf_counter()
         brand_frame = confirm_frame(
             brand_det, brand_preview, mode=mode, input_fn=input_fn
@@ -224,8 +252,10 @@ def run_phase1(
             "brand_cropped_shape_px": list(art_a.img.shape),
             "vendor_cropped_shape_px": list(art_b.img.shape),
         }
+        _notify("step_end", "task3_crop", "SUCCESS", f"Cropped artboards in {t3_ms}ms (Shape: {art_a.img.shape[1]}x{art_a.img.shape[0]} px)")
 
         # --- Task 4: Size Gate ---
+        _notify("step_start", "task4_size_gate", "IN_PROGRESS", "Verifying dimensions and aspect ratio against target...")
         t0 = time.perf_counter()
         gate_res = check_size(art_a, art_b, target_size_mm, profile)
         t4_ms = round((time.perf_counter() - t0) * 1000.0, 2)
@@ -238,9 +268,12 @@ def run_phase1(
             report["exit_code"] = 3
             report["error"] = gate_res.reason
             _write_report(run_dir / "report.json", report)
+            _notify("step_end", "task4_size_gate", "FAILED", f"Size gate check failed: {gate_res.status} - {gate_res.reason}")
             return 3, report, run_dir
+        _notify("step_end", "task4_size_gate", "SUCCESS", f"Size gate passed in {t4_ms}ms ({gate_res.status})")
 
         # --- Task 5: Bring to same coordinate system & Align ---
+        _notify("step_start", "task5_align", "IN_PROGRESS", "Performing sub-pixel alignment using RANSAC and Masked ECC...")
         t0 = time.perf_counter()
         align_res, b_aligned, valid_mask, stable_mask, inlier_max_err = align_artboards(
             art_a, art_b, profile=profile, rerender_crop_fn=_rerender_and_crop
@@ -261,9 +294,12 @@ def run_phase1(
             report["exit_code"] = 2
             report["error"] = align_res.reason
             _write_report(run_dir / "report.json", report)
+            _notify("step_end", "task5_align", "FAILED", f"Alignment failed: {align_res.reason}")
             return 2, report, run_dir
+        _notify("step_end", "task5_align", "SUCCESS", f"Aligned in {t5_ms}ms (RMSE: {align_res.inlier_rmse_px:.3f} px, Inliers: {align_res.inlier_count})")
 
         # --- Task 6: Fit Meter & Inspection Visuals ---
+        _notify("step_start", "task6_fit_meter", "IN_PROGRESS", "Measuring residual fit on 10x4 grid and generating diagnostic images...")
         t0 = time.perf_counter()
         fit_rep = measure_fit(
             art_a, b_aligned, valid_mask, align_res, inlier_max_err, profile
@@ -285,12 +321,21 @@ def run_phase1(
         if fit_rep.passed:
             report["status"] = "PASS"
             report["exit_code"] = 0
+            _notify("step_end", "task6_fit_meter", "SUCCESS", f"Fit measurement passed in {t6_ms}ms (Max shift: {fit_rep.grid_max_shift_px:.2f} px)")
         else:
             report["status"] = "FIT_FAIL"
             report["exit_code"] = 2
             report["error"] = fit_rep.reason
+            _notify("step_end", "task6_fit_meter", "FAILED", f"Fit measurement failed: {fit_rep.reason}")
 
         _write_report(run_dir / "report.json", report)
+        _notify(
+            "complete",
+            None,
+            "SUCCESS" if report["exit_code"] == 0 else "FAILED",
+            f"Pipeline complete with status {report['status']}",
+            details={"status": report["status"], "exit_code": report["exit_code"], "run_id": run_id},
+        )
         return int(report["exit_code"]), report, run_dir
 
     except ArtDiffError as exc:
@@ -298,12 +343,14 @@ def run_phase1(
         report["exit_code"] = exc.exit_code
         report["error"] = exc.message
         _write_report(run_dir / "report.json", report)
+        _notify("error", None, "FAILED", f"Error: {exc.message}", details={"code": exc.code})
         return exc.exit_code, report, run_dir
     except Exception as exc:
         report["status"] = "INTERNAL_ERROR"
         report["exit_code"] = 1
         report["error"] = str(exc)
         _write_report(run_dir / "report.json", report)
+        _notify("error", None, "FAILED", f"Internal Error: {str(exc)}")
         return 1, report, run_dir
 
 

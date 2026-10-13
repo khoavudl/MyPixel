@@ -1,0 +1,63 @@
+"""Pydantic schemas for REST API and WebSocket communication."""
+
+from __future__ import annotations
+
+from typing import Any, Literal
+from pydantic import BaseModel, Field
+
+
+class LogMessage(BaseModel):
+    type: Literal["log", "step_start", "step_end", "complete", "error"] = "log"
+    task: str | None = None
+    status: Literal["PENDING", "IN_PROGRESS", "SUCCESS", "FAILED"] = "IN_PROGRESS"
+    message: str
+    timestamp: float
+    details: dict[str, Any] | None = None
+
+
+class AnalyzeResponse(BaseModel):
+    run_id: str
+    status: str
+    message: str
+
+
+class RunImages(BaseModel):
+    brand_cropped: str | None = None
+    vendor_cropped: str | None = None
+    overlay: str | None = None
+    absdiff_heatmap: str | None = None
+    grid_vectors: str | None = None
+    frame_brand: str | None = None
+    frame_vendor: str | None = None
+
+
+class RunStatusResponse(BaseModel):
+    run_id: str
+    status: str
+    exit_code: int | None = None
+    error: str | None = None
+    images: RunImages
+    report: dict[str, Any] | None = None
+
+
+class Annotation(BaseModel):
+    id: str
+    norm_x: float = Field(..., ge=0.0, le=1.0)
+    norm_y: float = Field(..., ge=0.0, le=1.0)
+    norm_w: float = Field(..., ge=0.0, le=1.0)
+    norm_h: float = Field(..., ge=0.0, le=1.0)
+    bbox_mm: list[float] | None = None  # [x, y, w, h] in mm
+    tag: Literal["content", "shift", "barcode", "missing_char", "color", "other"] = "content"
+    severity: Literal["critical", "major", "minor"] = "major"
+    note: str = ""
+    created_at: str | None = None
+
+
+class AnnotationsPayload(BaseModel):
+    run_id: str
+    annotations: list[Annotation]
+
+
+class ExportRequest(BaseModel):
+    run_id: str
+    format: Literal["html", "json"] = "html"
