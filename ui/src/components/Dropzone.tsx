@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
-import { FileUp, FileCheck, Play, Sparkles } from 'lucide-react';
+import { FileUp, FileCheck, Play, Sparkles, FolderOpen } from 'lucide-react';
 import { useInspectionStore } from '../store/useInspectionStore';
+import { LoadRunModal } from './LoadRunModal';
 
 export const Dropzone: React.FC = () => {
   const {
@@ -23,6 +24,7 @@ export const Dropzone: React.FC = () => {
   const [isDraggingBrand, setIsDraggingBrand] = useState(false);
   const [isDraggingVendor, setIsDraggingVendor] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isLoadRunOpen, setIsLoadRunOpen] = useState(false);
 
   const brandInputRef = useRef<HTMLInputElement>(null);
   const vendorInputRef = useRef<HTMLInputElement>(null);
@@ -112,6 +114,18 @@ export const Dropzone: React.FC = () => {
           Đối chiếu bản thiết kế gốc (Brand) và bản dàn trang (Supplier). Bóc tách vector,
           chồng khít sub-pixel và phát hiện sai sót trước khi xuất bản in.
         </p>
+
+        {/* Load Past Run Quick Action */}
+        <div className="mt-5 flex items-center justify-center gap-3">
+          <button
+            type="button"
+            onClick={() => setIsLoadRunOpen(true)}
+            className="px-4 py-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 hover:border-blue-500/50 text-xs font-semibold text-slate-300 hover:text-white transition-all flex items-center gap-2 shadow-md cursor-pointer hover:scale-[1.02]"
+          >
+            <FolderOpen className="w-4 h-4 text-blue-400" />
+            <span>Mở Lần Chạy Cũ (Load Past Run)</span>
+          </button>
+        </div>
       </div>
 
       {errorMsg && (
@@ -321,6 +335,12 @@ export const Dropzone: React.FC = () => {
           <span>Bắt Đầu Kiểm Định (Analyze)</span>
         </button>
       </div>
+
+      {/* Historical Run Loader Modal */}
+      <LoadRunModal
+        isOpen={isLoadRunOpen}
+        onClose={() => setIsLoadRunOpen(false)}
+      />
     </div>
   );
 };

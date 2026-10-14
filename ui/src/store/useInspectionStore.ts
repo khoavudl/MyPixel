@@ -61,6 +61,7 @@ interface InspectionState {
   setIsSynced: (synced: boolean) => void;
   setIsFlickering: (flickering: boolean) => void;
   toggleFlickerTarget: () => void;
+  setAnnotations: (annotations: DefectBox[]) => void;
   addAnnotation: (box: DefectBox) => void;
   updateAnnotation: (id: string, updates: Partial<DefectBox>) => void;
   deleteAnnotation: (id: string) => void;
@@ -137,6 +138,7 @@ export const useInspectionStore = create<InspectionState>((set) => ({
     set((state) => ({
       flickerTarget: state.flickerTarget === 'brand' ? 'vendor' : 'brand',
     })),
+  setAnnotations: (annotations) => set({ annotations }),
   addAnnotation: (box) =>
     set((state) => ({ annotations: [...state.annotations, box] })),
   updateAnnotation: (id, updates) =>

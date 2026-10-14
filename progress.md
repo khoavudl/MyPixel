@@ -1,7 +1,7 @@
 # TIẾN ĐỘ DỰ ÁN (PROJECT PROGRESS) – MYPIXEL (ARTDIFF)
 > **Cập nhật lần cuối:** 2026-10-14  
-> **Trạng thái hiện tại:** Đã hoàn thành Milestone 2A.1, 2A.2, 2A.3, 2A.4 & Tối ưu hiệu năng ảnh chỉ báo (Indicator Downscaling 2048px). Sẵn sàng cho Milestone 2A.5 (1-Click Export Report).  
-> **Tổng số bài test tự động:** 35/35 PASS (100%)
+> **Trạng thái hiện tại:** Đã hoàn thành Milestone 2A.1, 2A.2, 2A.3, 2A.4, Tối ưu hiệu năng ảnh chỉ báo (2048px) & Tính năng Nạp Phiên Cũ (Load Past Run). Sẵn sàng cho Milestone 2A.5 (1-Click Export Report).  
+> **Tổng số bài test tự động:** 36/36 PASS (100%)
 
 ---
 
@@ -36,13 +36,14 @@
 * [`server/schemas.py`](file:///Users/tindn/Downloads/MyPixel-v1/server/schemas.py): Pydantic models chuẩn hoá cho request/response và WebSocket messages.
 * [`server/runner.py`](file:///Users/tindn/Downloads/MyPixel-v1/server/runner.py): Background thread pool executor bọc Phase 1, WebSocket connection manager hỗ trợ log replay.
 * [`server/exporter.py`](file:///Users/tindn/Downloads/MyPixel-v1/server/exporter.py): Xuất báo cáo kiểm tra dạng HTML in ấn đẹp mắt và JSON.
-* [`server/app.py`](file:///Users/tindn/Downloads/MyPixel-v1/server/app.py): Khởi tạo FastAPI app với lifespan, CORS, REST upload, WebSocket streaming và static file mounting.
+* [`server/app.py`](file:///Users/tindn/Downloads/MyPixel-v1/server/app.py): Khởi tạo FastAPI app với lifespan, CORS, REST upload, WebSocket streaming, static file mounting và endpoint `GET /api/runs` liệt kê lịch sử kiểm định.
 
 ### 2.3. Frontend Client (`ui/`)
-* [`ui/src/types/index.ts`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/types/index.ts): Khớp 1-1 với Pydantic schemas của Backend.
-* [`ui/src/store/useInspectionStore.ts`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/store/useInspectionStore.ts): Central Zustand store quản lý state toàn cục (viewport, zoom, pan, sync, flicker, annotations).
-* [`ui/src/components/Dropzone.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/Dropzone.tsx): Kéo thả 2 file PDF Brand & Vendor, nhập số trang, chọn nhanh kích thước mục tiêu (`620x250`, `217x200.5`).
-* [`ui/src/components/LogConsole.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/LogConsole.tsx): Terminal log thời gian thực qua WebSocket, thanh tiến trình, 6 pill trạng thái cho 6 task, đếm ngược chuyển view.
+* [`ui/src/types/index.ts`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/types/index.ts): Khớp 1-1 với Pydantic schemas của Backend, bổ sung `PastRunSummary`.
+* [`ui/src/store/useInspectionStore.ts`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/store/useInspectionStore.ts): Central Zustand store quản lý state toàn cục (viewport, zoom, pan, sync, flicker, annotations, loupeScaleFactor).
+* [`ui/src/components/Dropzone.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/Dropzone.tsx): Kéo thả 2 file PDF Brand & Vendor, tự động nhận diện khổ file (`v1/v2` -> `217x200.5`, `brand/vendor` -> `620x250`), nút mở lịch sử kiểm định (Load Past Run).
+* [`ui/src/components/LoadRunModal.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/LoadRunModal.tsx): Hộp thoại tìm kiếm và nạp trực tiếp phiên kiểm định cũ từ thư mục `out/`, tự động khôi phục ảnh 4 khung và toàn bộ Bounding Box lỗi để vào thẳng Workspace trong 0.1s.
+* [`ui/src/components/LogConsole.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/LogConsole.tsx): Terminal log thời gian thực qua WebSocket, thanh tiến trình, 6 pill trạng thái cho 6 task, banner gợi ý sửa lỗi khi lệch khổ kích thước.
 * [`ui/src/hooks/useSyncedViewport.ts`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/hooks/useSyncedViewport.ts): Hook đồng bộ Pan & Zoom to cursor mượt mà giữa các khung hình qua CSS GPU transform.
 * [`ui/src/hooks/useHotkeys.ts`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/hooks/useHotkeys.ts): Bắt phím tắt bàn phím: `Space` (Flicker compare), `H` (Pan), `0` (Fit), `1` (100%), `+`/`-` (Zoom), `S` (Toggle sync).
 * [`ui/src/components/CanvasViewer.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/CanvasViewer.tsx): Khung hiển thị ảnh độc lập áp dụng GPU Hardware-Accelerated transform (`translate3d` và `scale`) cho ảnh độ phân giải lớn, hỗ trợ chế độ Flicker đối chiếu.
@@ -73,8 +74,8 @@ tests/test_fit_meter.py ...                                              [ 43%]
 tests/test_frame_detector.py ..s                                         [ 51%]
 tests/test_pdf_renderer.py ..s                                           [ 59%]
 tests/test_pipeline_phase1.py ..                                         [ 64%]
-tests/test_server.py ....                                                [ 75%]
+tests/test_server.py .....                                               [ 76%]
 tests/test_size_gate.py ....                                             [ 86%]
 tests/test_units.py .....                                                [100%]
-================== 35 passed, 2 skipped, 6 warnings in 2.26s ===================
+================== 36 passed, 2 skipped, 6 warnings in 2.74s ===================
 ```

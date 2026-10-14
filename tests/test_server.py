@@ -141,3 +141,17 @@ def test_annotations_crud_and_export(client, sample_pdfs):
     assert "text/html" in export_res.headers["content-type"]
     assert "BIÊN BẢN KIỂM ĐỊNH BAO BÌ" in export_res.text
     assert "Mất dấu tiếng Việt" in export_res.text
+
+
+def test_list_past_runs(client):
+    res = client.get("/api/runs")
+    assert res.status_code == 200
+    runs = res.json()
+    assert isinstance(runs, list)
+    if runs:
+        first = runs[0]
+        assert "run_id" in first
+        assert "status" in first
+        assert "has_images" in first
+        assert "annotations_count" in first
+

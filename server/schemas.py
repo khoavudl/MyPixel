@@ -61,3 +61,16 @@ class AnnotationsPayload(BaseModel):
 class ExportRequest(BaseModel):
     run_id: str
     format: Literal["html", "json"] = "html"
+
+
+class PastRunSummary(BaseModel):
+    run_id: str
+    timestamp_utc: str | None = None
+    status: str = "UNKNOWN"
+    exit_code: int | None = None
+    brand_filename: str | None = None
+    vendor_filename: str | None = None
+    target_size_mm: list[float] | None = None
+    annotations_count: int = 0
+    has_images: bool = False
+

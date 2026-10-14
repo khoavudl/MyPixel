@@ -32,6 +32,7 @@ from server.schemas import (
     Annotation,
     AnnotationsPayload,
     ExportRequest,
+    PastRunSummary,
     RunImages,
     RunStatusResponse,
 )
@@ -110,6 +111,70 @@ async def analyze_artwork(
         status="STARTING",
         message="Pipeline initiated. Connect to WebSocket /ws/runs/{run_id} for real-time logs.",
     )
+
+
+@app.get("/api/runs", response_model=list[PastRunSummary])
+async def list_past_runs() -> list[PastRunSummary]:
+    """List historical inspection runs from out/ directory sorted newest first."""
+    if not OUT_DIR.is_dir():
+        return []
+
+    runs: list[PastRunSummary] = []
+    for run_dir in OUT_DIR.iterdir():
+        if not run_dir.is_dir() or not run_dir.name.startswith("run_"):
+            continue
+
+        report_file = run_dir / "report.json"
+        if not report_file.is_file():
+            continue
+
+        try:
+            with open(report_file, "r", encoding="utf-8") as f:
+                report = json.load(f)
+
+            # Check annotations count
+            annotations_count = 0
+            ann_file = run_dir / "annotations.json"
+            if ann_file.is_file():
+                try:
+                    with open(ann_file, "r", encoding="utf-8") as af:
+                        ann_list = json.load(af)
+                        if isinstance(ann_list, list):
+                            annotations_count = len(ann_list)
+                except Exception:
+                    pass
+
+            brand_input = report.get("inputs", {}).get("brand", {})
+            vendor_input = report.get("inputs", {}).get("vendor", {})
+            brand_pdf_path = brand_input.get("pdf_path", "")
+            vendor_pdf_path = vendor_input.get("pdf_path", "")
+            brand_filename = Path(brand_pdf_path).name if brand_pdf_path else None
+            vendor_filename = Path(vendor_pdf_path).name if vendor_pdf_path else None
+
+            has_images = (
+                (run_dir / "brand_cropped.png").is_file()
+                or (run_dir / "overlay.png").is_file()
+            )
+
+            runs.append(
+                PastRunSummary(
+                    run_id=run_dir.name,
+                    timestamp_utc=report.get("timestamp_utc"),
+                    status=report.get("status", "UNKNOWN"),
+                    exit_code=report.get("exit_code"),
+                    brand_filename=brand_filename,
+                    vendor_filename=vendor_filename,
+                    target_size_mm=report.get("target_size_mm"),
+                    annotations_count=annotations_count,
+                    has_images=has_images,
+                )
+            )
+        except Exception:
+            continue
+
+    # Sort newest first by timestamp_utc or run_dir name
+    runs.sort(key=lambda r: (r.timestamp_utc or "", r.run_id), reverse=True)
+    return runs
 
 
 @app.get("/api/runs/{run_id}", response_model=RunStatusResponse)

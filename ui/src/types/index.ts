@@ -64,3 +64,16 @@ export interface ViewportTransform {
   panX: number;
   panY: number;
 }
+
+export interface PastRunSummary {
+  run_id: string;
+  timestamp_utc?: string | null;
+  status: string;
+  exit_code?: number | null;
+  brand_filename?: string | null;
+  vendor_filename?: string | null;
+  target_size_mm?: [number, number] | null;
+  annotations_count: number;
+  has_images: boolean;
+}
+
