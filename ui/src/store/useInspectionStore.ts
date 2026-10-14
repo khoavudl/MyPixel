@@ -3,9 +3,11 @@ import {
   ActiveTool,
   DefectBox,
   LogMessage,
+  RotationAngle,
   RunStatusResponse,
   ViewportTransform,
 } from '../types';
+import { canonicalToScreen, getDisplayedDimensions } from '../utils/coordinateTransform';
 
 export type AppViewMode = 'setup' | 'console' | 'workspace';
 
@@ -58,6 +60,9 @@ interface InspectionState {
   setLoupeScaleFactor: (factor: number) => void;
   setViewport: (transform: Partial<ViewportTransform>) => void;
   resetViewport: () => void;
+  rotateClockwise: () => void;
+  rotateCounterClockwise: () => void;
+  setRotation: (rotation: RotationAngle) => void;
   setIsSynced: (synced: boolean) => void;
   setIsFlickering: (flickering: boolean) => void;
   toggleFlickerTarget: () => void;
@@ -78,6 +83,7 @@ const defaultViewport: ViewportTransform = {
   zoom: 1,
   panX: 0,
   panY: 0,
+  rotation: 0,
 };
 
 export const useInspectionStore = create<InspectionState>((set) => ({
@@ -132,6 +138,28 @@ export const useInspectionStore = create<InspectionState>((set) => ({
       viewport: { ...state.viewport, ...transform },
     })),
   resetViewport: () => set({ viewport: defaultViewport }),
+  rotateClockwise: () =>
+    set((state) => {
+      const angles: RotationAngle[] = [0, 90, 180, 270];
+      const idx = angles.indexOf(state.viewport.rotation || 0);
+      const nextAngle = angles[(idx + 1) % 4];
+      return {
+        viewport: { ...state.viewport, rotation: nextAngle },
+      };
+    }),
+  rotateCounterClockwise: () =>
+    set((state) => {
+      const angles: RotationAngle[] = [0, 90, 180, 270];
+      const idx = angles.indexOf(state.viewport.rotation || 0);
+      const nextAngle = angles[(idx + 3) % 4];
+      return {
+        viewport: { ...state.viewport, rotation: nextAngle },
+      };
+    }),
+  setRotation: (rotation) =>
+    set((state) => ({
+      viewport: { ...state.viewport, rotation },
+    })),
   setIsSynced: (synced) => set({ isSynced: synced }),
   setIsFlickering: (flickering) => set({ isFlickering: flickering }),
   toggleFlickerTarget: () =>
@@ -162,18 +190,33 @@ export const useInspectionStore = create<InspectionState>((set) => ({
     set((state) => {
       const imgW = state.naturalImageSize?.w || 6000;
       const imgH = state.naturalImageSize?.h || 2500;
-      const boxCenterX = (box.norm_x + box.norm_w / 2) * imgW;
-      const boxCenterY = (box.norm_y + box.norm_h / 2) * imgH;
+      const rot = state.viewport.rotation || 0;
+
+      // Center of the box in canonical space [0, 1]
+      const canonicalCenterX = box.norm_x + box.norm_w / 2;
+      const canonicalCenterY = box.norm_y + box.norm_h / 2;
+
+      // Convert center to screen normalized coords and dimensions
+      const { displayedW, displayedH } = getDisplayedDimensions(imgW, imgH, rot);
+      const { uPrime, vPrime } = canonicalToScreen(canonicalCenterX, canonicalCenterY, rot);
+
+      const boxCenterX = uPrime * displayedW;
+      const boxCenterY = vPrime * displayedH;
 
       const containerW = window.innerWidth * 0.45;
       const containerH = (window.innerHeight - 80) * 0.45;
 
-      const targetZoom = Math.min(3.5, Math.max(1.0, containerW / (box.norm_w * imgW * 2.5)));
+      const boxDisplayW =
+        rot === 90 || rot === 270 ? box.norm_h * imgH : box.norm_w * imgW;
+      const targetZoom = Math.min(
+        3.5,
+        Math.max(1.0, containerW / (boxDisplayW * 2.5))
+      );
       const newPanX = containerW / 2 - boxCenterX * targetZoom;
       const newPanY = containerH / 2 - boxCenterY * targetZoom;
 
       return {
-        viewport: { zoom: targetZoom, panX: newPanX, panY: newPanY },
+        viewport: { ...state.viewport, zoom: targetZoom, panX: newPanX, panY: newPanY },
         selectedBoxId: box.id,
       };
     }),

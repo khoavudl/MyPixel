@@ -4,6 +4,7 @@ import { useInspectionStore } from '../store/useInspectionStore';
 import { useSyncedViewport } from '../hooks/useSyncedViewport';
 import { SvgAnnotationLayer } from './SvgAnnotationLayer';
 import { LoupeMagnifier } from './LoupeMagnifier';
+import { getDisplayedDimensions } from '../utils/coordinateTransform';
 
 interface CanvasViewerProps {
   title: string;
@@ -53,6 +54,24 @@ export const CanvasViewer: React.FC<CanvasViewerProps> = ({
     ? naturalSize?.h || 0
     : naturalImageSize?.h || naturalSize?.h || 0;
 
+  // Displayed dimensions based on current orthogonal rotation
+  const { displayedW, displayedH } = getDisplayedDimensions(
+    effectiveWidth,
+    effectiveHeight,
+    viewport.rotation || 0
+  );
+
+  // Translation to keep the rotated bounding box anchored at (0, 0) in the displayed wrapper
+  let innerTransform = 'none';
+  const rot = viewport.rotation || 0;
+  if (rot === 90) {
+    innerTransform = `translate(${effectiveHeight}px, 0px) rotate(90deg)`;
+  } else if (rot === 180) {
+    innerTransform = `translate(${effectiveWidth}px, ${effectiveHeight}px) rotate(180deg)`;
+  } else if (rot === 270) {
+    innerTransform = `translate(0px, ${effectiveWidth}px) rotate(270deg)`;
+  }
+
   return (
     <div
       ref={containerRef}
@@ -77,6 +96,12 @@ export const CanvasViewer: React.FC<CanvasViewerProps> = ({
         <span className="text-xs font-semibold text-slate-200 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
           {title}
         </span>
+
+        {rot !== 0 && (
+          <span className="px-2 py-0.5 rounded bg-blue-500/20 border border-blue-400/40 text-blue-300 text-[10px] font-bold uppercase flex items-center gap-1 shadow">
+            {rot}°
+          </span>
+        )}
 
         {isFlickering && altImageUrl && (
           <span className="px-2 py-0.5 rounded bg-amber-500/90 text-slate-950 text-[10px] font-black uppercase flex items-center gap-1 shadow animate-pulse">
@@ -117,41 +142,56 @@ export const CanvasViewer: React.FC<CanvasViewerProps> = ({
         }}
       >
         {activeImageSrc ? (
+          /* Outer Displayed Bounding Box */
           <div
             className="relative"
             style={{
-              width: effectiveWidth > 0 ? effectiveWidth : undefined,
-              height: effectiveHeight > 0 ? effectiveHeight : undefined,
+              width: displayedW > 0 ? displayedW : undefined,
+              height: displayedH > 0 ? displayedH : undefined,
             }}
           >
-            <img
-              src={activeImageSrc}
-              alt={title}
-              draggable={false}
+            {/* Inner Content Container (rotated & shifted into displayed bounds) */}
+            <div
+              className="relative"
               style={{
                 width: effectiveWidth > 0 ? effectiveWidth : undefined,
                 height: effectiveHeight > 0 ? effectiveHeight : undefined,
-                display: 'block',
+                transform: innerTransform,
+                transformOrigin: '0 0',
               }}
-              onLoad={(e) => {
-                setImageLoaded(true);
-                const img = e.currentTarget;
-                const size = { w: img.naturalWidth, h: img.naturalHeight };
-                setNaturalSize(size);
-                if (isMain) {
-                  setNaturalImageSize(size);
-                }
-              }}
-              className="pointer-events-none max-w-none shadow-2xl"
-            />
-
-            {/* Cross-canvas synchronized SVG Bounding Box overlay */}
-            {effectiveWidth > 0 && effectiveHeight > 0 && (
-              <SvgAnnotationLayer
-                imageWidth={effectiveWidth}
-                imageHeight={effectiveHeight}
+            >
+              <img
+                src={activeImageSrc}
+                alt={title}
+                draggable={false}
+                style={{
+                  width: effectiveWidth > 0 ? effectiveWidth : undefined,
+                  height: effectiveHeight > 0 ? effectiveHeight : undefined,
+                  display: 'block',
+                }}
+                onLoad={(e) => {
+                  setImageLoaded(true);
+                  const img = e.currentTarget;
+                  const size = { w: img.naturalWidth, h: img.naturalHeight };
+                  setNaturalSize(size);
+                  if (isMain) {
+                    setNaturalImageSize(size);
+                  }
+                }}
+                className="pointer-events-none max-w-none shadow-2xl"
               />
-            )}
+
+              {/* Cross-canvas synchronized SVG Bounding Box overlay */}
+              {effectiveWidth > 0 && effectiveHeight > 0 && (
+                <SvgAnnotationLayer
+                  imageWidth={effectiveWidth}
+                  imageHeight={effectiveHeight}
+                  displayedWidth={displayedW}
+                  displayedHeight={displayedH}
+                  containerRef={containerRef}
+                />
+              )}
+            </div>
           </div>
         ) : (
           <div className="w-[800px] h-[600px] flex items-center justify-center text-slate-600 text-sm">
@@ -167,9 +207,10 @@ export const CanvasViewer: React.FC<CanvasViewerProps> = ({
           imageUrl={activeImageSrc}
           imageWidth={effectiveWidth}
           imageHeight={effectiveHeight}
+          displayedWidth={displayedW}
+          displayedHeight={displayedH}
         />
       )}
     </div>
   );
 };
-

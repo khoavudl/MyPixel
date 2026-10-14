@@ -5,32 +5,34 @@ import { DefectSidebar } from './DefectSidebar';
 import { AnnotationModal } from './AnnotationModal';
 import { useHotkeys } from '../hooks/useHotkeys';
 import { useInspectionStore } from '../store/useInspectionStore';
+import { getDisplayedDimensions } from '../utils/coordinateTransform';
 
 export const Workspace: React.FC = () => {
-  const { setViewport } = useInspectionStore();
+  const { setViewport, viewport, naturalImageSize } = useInspectionStore();
 
   const handleFitToScreen = useCallback(() => {
-    // Standard fit for common packaging aspect ratio (e.g., 620x250 or 217x200)
-    // Centers the artboard and sets a comfortable overview zoom (around 0.15 - 0.25x for 7000px wide image)
+    // Standard fit for packaging aspect ratio taking rotation into account
     const containerWidth = window.innerWidth * 0.58;
     const containerHeight = (window.innerHeight - 80) * 0.48;
 
-    // Approximate artboard pixel dimensions (~7320x2950 or ~2560x2360)
-    const assumedWidth = 6000;
-    const assumedHeight = 2500;
+    const baseWidth = naturalImageSize?.w || 6000;
+    const baseHeight = naturalImageSize?.h || 2500;
+    const rot = viewport.rotation || 0;
 
-    const scaleX = containerWidth / assumedWidth;
-    const scaleY = containerHeight / assumedHeight;
+    const { displayedW, displayedH } = getDisplayedDimensions(baseWidth, baseHeight, rot);
+
+    const scaleX = containerWidth / displayedW;
+    const scaleY = containerHeight / displayedH;
     const fitZoom = Math.min(scaleX, scaleY) * 0.95;
 
     const finalZoom = Math.max(0.08, Math.min(1.0, fitZoom));
 
     setViewport({
       zoom: finalZoom,
-      panX: Math.max(20, (containerWidth - assumedWidth * finalZoom) / 2),
-      panY: Math.max(20, (containerHeight - assumedHeight * finalZoom) / 2),
+      panX: Math.max(20, (containerWidth - displayedW * finalZoom) / 2),
+      panY: Math.max(20, (containerHeight - displayedH * finalZoom) / 2),
     });
-  }, [setViewport]);
+  }, [setViewport, viewport.rotation, naturalImageSize]);
 
   const handleActualSize = useCallback(() => {
     setViewport({

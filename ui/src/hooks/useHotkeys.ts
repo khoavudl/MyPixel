@@ -8,6 +8,8 @@ export const useHotkeys = (onFitToScreen?: () => void) => {
     viewport,
     setViewport,
     resetViewport,
+    rotateClockwise,
+    rotateCounterClockwise,
     isSynced,
     setIsSynced,
     setIsFlickering,
@@ -56,6 +58,12 @@ export const useHotkeys = (onFitToScreen?: () => void) => {
         setViewport({ zoom: Math.min(32, viewport.zoom * 1.25) });
       } else if (e.key === '-' || e.key === '_') {
         setViewport({ zoom: Math.max(0.05, viewport.zoom * 0.8) });
+      } else if (e.key === 'r' || e.key === 'R') {
+        if (e.shiftKey) {
+          rotateCounterClockwise();
+        } else {
+          rotateClockwise();
+        }
       } else if (e.key === '[') {
         if (activeTool === 'loupe') {
           setLoupeScaleFactor(loupeScaleFactor - 0.5);

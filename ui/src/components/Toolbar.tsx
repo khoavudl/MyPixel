@@ -8,6 +8,7 @@ import {
   Maximize2,
   Minimize2,
   RotateCcw,
+  RotateCw,
   Eye,
   ListFilter,
 } from 'lucide-react';
@@ -27,6 +28,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     setActiveTool,
     viewport,
     setViewport,
+    rotateClockwise,
+    rotateCounterClockwise,
     isFlickering,
     setIsFlickering,
     toggleFlickerTarget,
@@ -184,6 +187,38 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         >
           <Minimize2 className="w-3.5 h-3.5" />
           <span className="hidden lg:inline">100% (1)</span>
+        </button>
+
+        <div className="h-4 w-[1px] bg-slate-800 mx-1" />
+
+        {/* Rotate CCW */}
+        <button
+          onClick={rotateCounterClockwise}
+          title="Xoay ngược chiều kim đồng hồ 90° (Shift + R)"
+          className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+        >
+          <RotateCcw className="w-4 h-4" />
+        </button>
+
+        {/* Rotation indicator badge */}
+        <span
+          title="Góc xoay hiện tại"
+          className={`text-xs font-mono font-bold min-w-[38px] text-center px-1 py-0.5 rounded ${
+            viewport.rotation !== 0
+              ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40'
+              : 'text-slate-400'
+          }`}
+        >
+          {viewport.rotation || 0}°
+        </span>
+
+        {/* Rotate CW */}
+        <button
+          onClick={rotateClockwise}
+          title="Xoay theo chiều kim đồng hồ 90° (Phím R)"
+          className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+        >
+          <RotateCw className="w-4 h-4" />
         </button>
       </div>
 

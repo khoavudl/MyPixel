@@ -62,10 +62,6 @@ export const DefectSidebar: React.FC = () => {
     }
   };
 
-  const criticalCount = annotations.filter((a) => a.severity === 'critical').length;
-  const majorCount = annotations.filter((a) => a.severity === 'major').length;
-  const minorCount = annotations.filter((a) => a.severity === 'minor').length;
-
   if (!isSidebarOpen) {
     return (
       <button
@@ -102,19 +98,6 @@ export const DefectSidebar: React.FC = () => {
         </button>
       </div>
 
-      {/* Summary Stat Pills */}
-      <div className="p-2 bg-slate-950/50 border-b border-slate-800/80 grid grid-cols-3 gap-1 text-center text-[10px] font-semibold">
-        <div className="py-1 px-1 rounded-md bg-red-500/10 text-red-400 border border-red-500/20">
-          Crit: {criticalCount}
-        </div>
-        <div className="py-1 px-1 rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20">
-          Maj: {majorCount}
-        </div>
-        <div className="py-1 px-1 rounded-md bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">
-          Min: {minorCount}
-        </div>
-      </div>
-
       {/* Defect Cards List */}
       <div className="flex-1 overflow-y-auto p-2 space-y-2">
         {annotations.length === 0 ? (
@@ -129,12 +112,6 @@ export const DefectSidebar: React.FC = () => {
           annotations.map((box: DefectBox, idx: number) => {
             const isSelected = selectedBoxId === box.id;
             const isHovered = hoveredBoxId === box.id;
-
-            const severityColor = {
-              critical: 'bg-red-500/15 text-red-400 border-red-500/30',
-              major: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
-              minor: 'bg-yellow-500/15 text-yellow-300 border-yellow-500/30',
-            }[box.severity];
 
             return (
               <div
@@ -153,20 +130,11 @@ export const DefectSidebar: React.FC = () => {
                     : 'bg-slate-950/70 border-slate-800/80 hover:border-slate-700'
                 }`}
               >
-                {/* Card Top: Number, Severity, Tag */}
+                {/* Card Top: Number */}
                 <div className="flex items-center justify-between mb-1.5">
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-5 h-5 rounded-md bg-blue-600 text-white text-[11px] font-black flex items-center justify-center">
-                      #{idx + 1}
-                    </span>
-                    <span
-                      className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase border ${severityColor}`}
-                    >
-                      {box.severity}
-                    </span>
-                  </div>
-
-                  <span className="text-[11px] font-medium text-slate-400">{box.tag}</span>
+                  <span className="w-5 h-5 rounded-md bg-blue-600 text-white text-[11px] font-black flex items-center justify-center">
+                    #{idx + 1}
+                  </span>
                 </div>
 
                 {/* Card Note or Placeholder */}

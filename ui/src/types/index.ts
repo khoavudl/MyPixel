@@ -58,11 +58,13 @@ export interface DefectBox {
 }
 
 export type ActiveTool = 'pan' | 'box' | 'loupe' | 'flicker';
+export type RotationAngle = 0 | 90 | 180 | 270;
 
 export interface ViewportTransform {
   zoom: number;
   panX: number;
   panY: number;
+  rotation: RotationAngle;
 }
 
 export interface PastRunSummary {

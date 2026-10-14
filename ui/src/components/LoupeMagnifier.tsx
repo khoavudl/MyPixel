@@ -1,11 +1,14 @@
 import React, { useEffect } from 'react';
 import { useInspectionStore } from '../store/useInspectionStore';
+import { screenToCanonical, canonicalToScreen } from '../utils/coordinateTransform';
 
 interface LoupeMagnifierProps {
   containerRef: React.RefObject<HTMLDivElement | null>;
   imageUrl?: string | null;
   imageWidth: number;
   imageHeight: number;
+  displayedWidth?: number;
+  displayedHeight?: number;
 }
 
 export const LoupeMagnifier: React.FC<LoupeMagnifierProps> = ({
@@ -13,6 +16,8 @@ export const LoupeMagnifier: React.FC<LoupeMagnifierProps> = ({
   imageUrl,
   imageWidth,
   imageHeight,
+  displayedWidth,
+  displayedHeight,
 }) => {
   const {
     activeTool,
@@ -27,6 +32,10 @@ export const LoupeMagnifier: React.FC<LoupeMagnifierProps> = ({
   const LENS_RADIUS = LENS_SIZE / 2;
   const relativeFactor = loupeScaleFactor || 3.0;
   const effectiveZoom = Math.max(0.05, viewport.zoom * relativeFactor);
+
+  const dispW = displayedWidth || imageWidth;
+  const dispH = displayedHeight || imageHeight;
+  const rot = viewport.rotation || 0;
 
   // Listen to mousemove inside this container to broadcast normalized position to all 4 screens
   useEffect(() => {
@@ -49,13 +58,16 @@ export const LoupeMagnifier: React.FC<LoupeMagnifierProps> = ({
 
       const mx = e.clientX - rect.left;
       const my = e.clientY - rect.top;
-      const wx = (mx - viewport.panX) / viewport.zoom;
-      const wy = (my - viewport.panY) / viewport.zoom;
+      const wxPrime = (mx - viewport.panX) / viewport.zoom;
+      const wyPrime = (my - viewport.panY) / viewport.zoom;
 
-      if (wx >= 0 && wx <= imageWidth && wy >= 0 && wy <= imageHeight) {
+      if (wxPrime >= 0 && wxPrime <= dispW && wyPrime >= 0 && wyPrime <= dispH) {
+        const uPrime = wxPrime / dispW;
+        const vPrime = wyPrime / dispH;
+        const canonical = screenToCanonical(uPrime, vPrime, rot);
         setLoupeNormalizedPos({
-          x: wx / imageWidth,
-          y: wy / imageHeight,
+          x: canonical.u,
+          y: canonical.v,
         });
       } else {
         setLoupeNormalizedPos(null);
@@ -73,7 +85,7 @@ export const LoupeMagnifier: React.FC<LoupeMagnifierProps> = ({
       container.removeEventListener('mousemove', handleMouseMove);
       container.removeEventListener('mouseleave', handleMouseLeave);
     };
-  }, [activeTool, containerRef, viewport, imageWidth, imageHeight, setLoupeNormalizedPos]);
+  }, [activeTool, containerRef, viewport, dispW, dispH, rot, setLoupeNormalizedPos]);
 
   // If tool is not loupe, no pos is set, or no image, don't render lens
   if (activeTool !== 'loupe' || !loupeNormalizedPos || !imageUrl) {
@@ -84,11 +96,14 @@ export const LoupeMagnifier: React.FC<LoupeMagnifierProps> = ({
   if (!container) return null;
 
   // Calculate coordinates in this container's view
-  const wx = loupeNormalizedPos.x * imageWidth;
-  const wy = loupeNormalizedPos.y * imageHeight;
+  const { uPrime, vPrime } = canonicalToScreen(
+    loupeNormalizedPos.x,
+    loupeNormalizedPos.y,
+    rot
+  );
 
-  const screenX = wx * viewport.zoom + viewport.panX;
-  const screenY = wy * viewport.zoom + viewport.panY;
+  const screenX = uPrime * dispW * viewport.zoom + viewport.panX;
+  const screenY = vPrime * dispH * viewport.zoom + viewport.panY;
 
   const cWidth = container.clientWidth;
   const cHeight = container.clientHeight;
@@ -116,10 +131,8 @@ export const LoupeMagnifier: React.FC<LoupeMagnifierProps> = ({
   const posXmm = (loupeNormalizedPos.x * targetW).toFixed(2);
   const posYmm = (loupeNormalizedPos.y * targetH).toFixed(2);
 
-  // Background position for relative magnification:
-  // wx and wy are scaled by effectiveZoom in the lens
-  const bgX = -wx * effectiveZoom + LENS_RADIUS;
-  const bgY = -wy * effectiveZoom + LENS_RADIUS;
+  const wx = loupeNormalizedPos.x * imageWidth;
+  const wy = loupeNormalizedPos.y * imageHeight;
 
   return (
     <div
@@ -128,22 +141,34 @@ export const LoupeMagnifier: React.FC<LoupeMagnifierProps> = ({
         height: LENS_SIZE,
         left: screenX - LENS_RADIUS,
         top: screenY - LENS_RADIUS,
-        backgroundImage: `url(${imageUrl})`,
-        backgroundRepeat: 'no-repeat',
-        backgroundSize: `${imageWidth * effectiveZoom}px ${imageHeight * effectiveZoom}px`,
-        backgroundPosition: `${bgX}px ${bgY}px`,
       }}
-      className="absolute pointer-events-none rounded-full border-4 border-cyan-400 shadow-2xl z-40 overflow-hidden ring-4 ring-black/40 backdrop-blur-none"
+      className="absolute pointer-events-none rounded-full border-4 border-cyan-400 shadow-2xl z-40 overflow-hidden ring-4 ring-black/40 bg-slate-950"
     >
+      {/* Magnified Image transformed with rotation */}
+      <img
+        src={imageUrl}
+        alt="Magnifier view"
+        draggable={false}
+        style={{
+          width: imageWidth,
+          height: imageHeight,
+          maxWidth: 'none',
+          transform: `translate(${LENS_RADIUS}px, ${LENS_RADIUS}px) scale(${effectiveZoom}) rotate(${rot}deg) translate(${-wx}px, ${-wy}px)`,
+          transformOrigin: '0 0',
+          display: 'block',
+        }}
+        className="pointer-events-none"
+      />
+
       {/* Central Crosshair */}
-      <div className="absolute inset-0 flex items-center justify-center">
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
         <div className="w-full h-[1px] bg-red-500/70" />
         <div className="h-full w-[1px] bg-red-500/70 absolute" />
-        <div className="w-2 h-2 rounded-full border border-red-500/90 absolute" />
+        <div className="w-2.5 h-2.5 rounded-full border border-red-500/90 absolute" />
       </div>
 
       {/* Pill: Zoom factor & Physical location */}
-      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-slate-950/90 border border-slate-700 text-[10px] font-mono text-cyan-300 shadow font-bold whitespace-nowrap flex items-center gap-1.5">
+      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-slate-950/90 border border-slate-700 text-[10px] font-mono text-cyan-300 shadow font-bold whitespace-nowrap flex items-center gap-1.5 pointer-events-none">
         <span>{relativeFactor.toFixed(1)}x ({Math.round(effectiveZoom * 100)}%)</span>
         <span className="text-slate-500">•</span>
         <span>{posXmm}, {posYmm} mm</span>

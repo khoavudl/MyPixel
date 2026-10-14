@@ -1,6 +1,6 @@
 # TIẾN ĐỘ DỰ ÁN (PROJECT PROGRESS) – MYPIXEL (ARTDIFF)
 > **Cập nhật lần cuối:** 2026-10-14  
-> **Trạng thái hiện tại:** Đã hoàn thành Milestone 2A.1, 2A.2, 2A.3, 2A.4, Tối ưu hiệu năng ảnh chỉ báo (2048px) & Tính năng Nạp Phiên Cũ (Load Past Run). Sẵn sàng cho Milestone 2A.5 (1-Click Export Report).  
+> **Trạng thái hiện tại:** Đã hoàn thành Milestone 2A.1, 2A.2, 2A.3, 2A.4, Xoay Trực Giao 4 Hướng (0°/90°/180°/270°), Tối ưu Badge & Stroke Bất Biến Màn Hình (Screen-Space Invariant Sizing), Tối ưu hiệu năng ảnh chỉ báo (2048px) & Tính năng Nạp Phiên Cũ (Load Past Run). Sẵn sàng cho Milestone 2A.5 (1-Click Export Report).  
 > **Tổng số bài test tự động:** 36/36 PASS (100%)
 
 ---
@@ -14,6 +14,7 @@
 | **Milestone 2A.2** | **UI Dropzone & Real-time Console** (`ui/`): Kéo thả 2 file PDF, cấu hình kích thước WxH mm và số trang, bấm Analyze, hiển thị log WebSocket nhảy từng dòng theo thời gian thực, tự động chuyển view | **HOÀN TẤT** | `npm run build` thành công (1.17s). Đã tích hợp serve trực tiếp qua `http://localhost:8000`. |
 | **Milestone 2A.3** | **4-Way Synced Viewport Canvas**: 2 khung lớn bên trái (Brand, Vendor); 2 khung nhỏ bên phải (Overlay, Heatmap). Đồng bộ Pan & Zoom 60 FPS qua CSS GPU transform + Phím tắt Space chớp tắt (Flicker Compare) | **HOÀN TẤT** | Đã hoàn thành `ViewportGrid.tsx`, `CanvasViewer.tsx`, `Toolbar.tsx`, `useSyncedViewport.ts`, `useHotkeys.ts`. Build sạch (1.23s). |
 | **Milestone 2A.4** | **Kính lúp (Loupe 4x-8x) & Cross-Canvas Annotations**: Rê chuột soi nét sub-pixel đồng thời cả 4 khung; vẽ box ở bất kỳ khung nào thì tự động hiện ở cả 4 khung; toggle phím tắt B/L quay về Pan; thu gọn sidebar lỗi còn 70% (w-56); cân bằng 50/50 khung chính và khung chẩn đoán | **HOÀN TẤT** | Đã hoàn thiện `LoupeMagnifier.tsx` (4-way synced), `SvgAnnotationLayer.tsx`, `AnnotationModal.tsx`, `DefectSidebar.tsx` (w-56), `ViewportGrid.tsx` (50/50 split). Build sạch (1.42s). |
+| **Milestone 2A.4+** | **4-Way Orthogonal Rotation (0°/90°/180°/270°) & Screen-Invariant Badges**: Xoay đồng bộ 4 khung hình đọc nắp hộp/chữ ngược; vẽ box ở mọi góc xoay tự động quy về toạ độ gốc; nhãn `#1, #2` tự động bù zoom và counter-rotate luôn nằm ngang rõ nét ở mọi tỷ lệ | **HOÀN TẤT** | Đã hoàn thành `coordinateTransform.ts`, `CanvasViewer.tsx`, `SvgAnnotationLayer.tsx`, `LoupeMagnifier.tsx`, `Toolbar.tsx`, `useHotkeys.ts` (Phím `R` / `Shift+R`). Build sạch (1.39s). |
 | **Milestone 2A.5** | **1-Click Export Report**: Xuất biên bản kiểm tra (HTML / PDF / JSON) có ảnh cắt cận cảnh từng box và bảng ghi chú chi tiết | *CHỜ DUYỆT* | Kế hoạch tiếp theo. |
 | **Phase 2B** | **Tích hợp Gợi ý Khác biệt Tự động (Assisted Auto-diff)**: Tự động vẽ sẵn các box nghi vấn lên UI cho người dùng duyệt | *TƯƠNG LAI* | Sau khi hoàn thiện UI Phase 2A. |
 
@@ -51,12 +52,21 @@
 * [`ui/src/components/Toolbar.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/Toolbar.tsx): Thanh công cụ kiểm định chuyên dụng: Pan (H), Draw Box (B), Loupe (L), Flicker (Space), Zoom, Fit screen (0), 100% (1), 4-Way Sync toggle (S), và nút mở Danh sách lỗi.
 * [`ui/src/components/SvgAnnotationLayer.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/SvgAnnotationLayer.tsx): Lớp vẽ SVG đồng bộ 4 khung hình. Vẽ box trên bất kỳ khung nào thì hiển thị tức thì trên cả 4 khung với toạ độ chuẩn hoá $[0,1]$ và mm thực tế.
 * [`ui/src/components/LoupeMagnifier.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/LoupeMagnifier.tsx): Kính lúp tròn phóng đại tương đối (Relative Magnification `effectiveZoom = viewport.zoom * loupeScaleFactor`), tự động co dãn mượt mà chạy theo nhịp lăn chuột zoom in/out, hỗ trợ phím tắt `[` / `]` và `Shift + Lăn chuột` điều chỉnh hệ số phóng từ 1.5x - 8.0x, tâm ngắm crosshair và toạ độ mm thực tế.
-* [`ui/src/components/AnnotationModal.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/AnnotationModal.tsx): Hộp thoại modal gán nhãn lỗi (Tag, Mức độ nghiêm trọng, Note), hiển thị toạ độ mm và tự động đồng bộ API backend.
-* [`ui/src/components/DefectSidebar.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/DefectSidebar.tsx): Thanh sidebar danh sách lỗi (Punch List) phân loại Critical/Major/Minor, hỗ trợ bấm vào là cả 4 khung hình bay đến tâm box (`jumpToBox`), nút 1-Click Export.
+* [`ui/src/components/AnnotationModal.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/AnnotationModal.tsx): Hộp thoại modal "Ghi Chú" tinh gọn (chỉ giữ lại Ghi chú chi tiết và toạ độ mm, loại bỏ tag/severity rườm rà), tự động đồng bộ API backend.
+* [`ui/src/components/DefectSidebar.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/DefectSidebar.tsx): Thanh sidebar danh sách lỗi tinh gọn (đã bỏ 3 khung thống kê Crit/Maj/Min và các tag/severity badge trên từng card), hỗ trợ bấm vào là cả 4 khung hình bay đến tâm box (`jumpToBox`), nút 1-Click Export.
 * [`ui/src/components/CanvasViewer.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/CanvasViewer.tsx): Khung hiển thị ảnh độc lập áp dụng GPU Hardware-Accelerated transform (`translate3d` và `scale`), hỗ trợ không gian toạ độ ảo (Virtual Coordinate Space) cho ảnh chỉ báo (Overlay/Heatmap) đồng bộ 100% với ảnh Brand full-res, chống ghi đè kích thước store và bật willChange khi dragging.
 * [`ui/src/components/Workspace.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/Workspace.tsx): Trạm làm việc kiểm định hoàn chỉnh kết hợp Toolbar, ViewportGrid, DefectSidebar, AnnotationModal và Hotkeys.
 * [`ui/src/App.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/App.tsx) & [`ui/src/main.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/main.tsx): Layout Dark Mode hoàn chỉnh.
-* [`ui/dist/`](file:///Users/tindn/Downloads/MyPixel-v1/ui/dist): Bản build production sẵn sàng (1.36s).
+* [`ui/dist/`](file:///Users/tindn/Downloads/MyPixel-v1/ui/dist): Bản build production sẵn sàng (1.39s).
+
+### 2.4. Tính Năng Xoay Trực Giao 4 Hướng & Badge Bất Biến Màn Hình (Milestone 2A.4+)
+* [`ui/src/utils/coordinateTransform.ts`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/utils/coordinateTransform.ts): Module ánh xạ 2 chiều nghịch đảo hoàn hảo ($100\%$ Invertible) giữa toạ độ màn hình xoay và toạ độ chuẩn hoá $[0, 1]$ của ảnh gốc cho cả 4 góc ($0^\circ, 90^\circ, 180^\circ, 270^\circ$).
+* [`ui/src/components/SvgAnnotationLayer.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/SvgAnnotationLayer.tsx): Áp dụng `vectorEffect="non-scaling-stroke"` giúp viền box luôn dày 2px/3.5px rõ nét ở mọi độ zoom. Badge số `#1, #2...` áp dụng bù zoom (`scale(1 / zoom)`) và triệt tiêu góc xoay (`rotate(-rotation)`), đảm bảo số luôn to rõ (~18px cao) và luôn nằm ngang xuôi mắt đọc.
+* [`ui/src/components/CanvasViewer.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/CanvasViewer.tsx): Khung hiển thị outer bounding box theo kích thước đã xoay ($W \leftrightarrow H$) và container con GPU-transformed mượt mà, kèm pill góc xoay trên card header.
+* [`ui/src/components/LoupeMagnifier.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/LoupeMagnifier.tsx): Soi nét đồng bộ 4 khung hình theo toạ độ xoay, ảnh trong tròng kính lúp xoay cùng góc với khung nhìn bên ngoài.
+* [`ui/src/components/Toolbar.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/Toolbar.tsx) & [`ui/src/hooks/useHotkeys.ts`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/hooks/useHotkeys.ts): Bổ sung 2 nút xoay ⟲ (CCW) / ⟳ (CW), badge góc xoay, cùng phím tắt `R` (Xoay phải $90^\circ$) và `Shift + R` (Xoay trái $90^\circ$).
+* [`ui/src/components/Workspace.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/Workspace.tsx): Nút Fit screen (phím `0`) tự động tính toán lại kích thước hiển thị theo góc xoay ($W \leftrightarrow H$).
+
 
 ---
 

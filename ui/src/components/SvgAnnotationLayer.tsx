@@ -1,19 +1,27 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useInspectionStore } from '../store/useInspectionStore';
 import { DefectBox } from '../types';
+import { screenDragToCanonicalBox } from '../utils/coordinateTransform';
 
 interface SvgAnnotationLayerProps {
   imageWidth: number;
   imageHeight: number;
+  displayedWidth?: number;
+  displayedHeight?: number;
+  containerRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 export const SvgAnnotationLayer: React.FC<SvgAnnotationLayerProps> = ({
   imageWidth,
   imageHeight,
+  displayedWidth,
+  displayedHeight,
+  containerRef,
 }) => {
   const {
     activeTool,
     setActiveTool,
+    viewport,
     annotations,
     addAnnotation,
     selectedBoxId,
@@ -24,8 +32,8 @@ export const SvgAnnotationLayer: React.FC<SvgAnnotationLayerProps> = ({
     targetSizeMm,
   } = useInspectionStore();
 
-  const [drawStart, setDrawStart] = useState<{ x: number; y: number } | null>(null);
-  const [currentDrag, setCurrentDrag] = useState<{ x: number; y: number } | null>(null);
+  const [drawStart, setDrawStart] = useState<{ uPrime: number; vPrime: number } | null>(null);
+  const [currentDrag, setCurrentDrag] = useState<{ uPrime: number; vPrime: number } | null>(null);
 
   const svgRef = useRef<SVGSVGElement>(null);
 
@@ -42,65 +50,83 @@ export const SvgAnnotationLayer: React.FC<SvgAnnotationLayerProps> = ({
     return [620, 250];
   };
 
+  // Convert mouse event coordinates to normalized screen coordinates [0, 1] x [0, 1]
+  const getScreenNormalized = (e: React.MouseEvent<SVGSVGElement> | MouseEvent) => {
+    const container = containerRef?.current;
+    const dispW = displayedWidth || imageWidth;
+    const dispH = displayedHeight || imageHeight;
+
+    if (container) {
+      const rect = container.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      const worldX = (mouseX - viewport.panX) / viewport.zoom;
+      const worldY = (mouseY - viewport.panY) / viewport.zoom;
+
+      return {
+        uPrime: Math.max(0, Math.min(1, worldX / dispW)),
+        vPrime: Math.max(0, Math.min(1, worldY / dispH)),
+      };
+    }
+
+    const rect = svgRef.current?.getBoundingClientRect();
+    if (!rect) return { uPrime: 0, vPrime: 0 };
+    return {
+      uPrime: Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)),
+      vPrime: Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height)),
+    };
+  };
+
   const handleMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
     if (activeTool !== 'box') return;
     if (e.button !== 0) return; // Left click only
 
     e.stopPropagation();
-    const rect = svgRef.current?.getBoundingClientRect();
-    if (!rect) return;
-
-    const normX = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    const normY = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
-
-    setDrawStart({ x: normX, y: normY });
-    setCurrentDrag({ x: normX, y: normY });
+    const pt = getScreenNormalized(e);
+    setDrawStart(pt);
+    setCurrentDrag(pt);
   };
 
   const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
     if (!drawStart || activeTool !== 'box') return;
-
-    const rect = svgRef.current?.getBoundingClientRect();
-    if (!rect) return;
-
-    const normX = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    const normY = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
-
-    setCurrentDrag({ x: normX, y: normY });
+    const pt = getScreenNormalized(e);
+    setCurrentDrag(pt);
   };
 
-  const handleMouseUp = () => {
-    if (!drawStart || !currentDrag || activeTool !== 'box') {
+  const finishDrawing = (endPt?: { uPrime: number; vPrime: number }) => {
+    if (!drawStart || activeTool !== 'box') {
       setDrawStart(null);
       setCurrentDrag(null);
       return;
     }
 
-    const norm_x = Math.min(drawStart.x, currentDrag.x);
-    const norm_y = Math.min(drawStart.y, currentDrag.y);
-    const norm_w = Math.abs(currentDrag.x - drawStart.x);
-    const norm_h = Math.abs(currentDrag.y - drawStart.y);
+    const dragEnd = endPt || currentDrag || drawStart;
+    const canonicalBox = screenDragToCanonicalBox(
+      drawStart,
+      dragEnd,
+      viewport.rotation || 0
+    );
 
     setDrawStart(null);
     setCurrentDrag(null);
 
     // Minimum box size threshold (at least 0.3% of the image)
-    if (norm_w < 0.003 || norm_h === 0) return;
+    if (canonicalBox.norm_w < 0.003 || canonicalBox.norm_h === 0) return;
 
     const [tW, tH] = getTargetSizeMm();
     const bbox_mm: [number, number, number, number] = [
-      Number((norm_x * tW).toFixed(2)),
-      Number((norm_y * tH).toFixed(2)),
-      Number((norm_w * tW).toFixed(2)),
-      Number((norm_h * tH).toFixed(2)),
+      Number((canonicalBox.norm_x * tW).toFixed(2)),
+      Number((canonicalBox.norm_y * tH).toFixed(2)),
+      Number((canonicalBox.norm_w * tW).toFixed(2)),
+      Number((canonicalBox.norm_h * tH).toFixed(2)),
     ];
 
     const newBox: DefectBox = {
       id: `box-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-      norm_x,
-      norm_y,
-      norm_w,
-      norm_h,
+      norm_x: canonicalBox.norm_x,
+      norm_y: canonicalBox.norm_y,
+      norm_w: canonicalBox.norm_w,
+      norm_h: canonicalBox.norm_h,
       bbox_mm,
       tag: 'content',
       severity: 'major',
@@ -114,23 +140,49 @@ export const SvgAnnotationLayer: React.FC<SvgAnnotationLayerProps> = ({
     setActiveTool('pan');
   };
 
-  // Temporary box during mouse dragging
-  const tempBox =
+  // Listen to window mousemove and mouseup during box creation so drag doesn't drop outside SVG bounds
+  useEffect(() => {
+    if (!drawStart) return;
+
+    const handleWindowMouseMove = (e: MouseEvent) => {
+      const pt = getScreenNormalized(e);
+      setCurrentDrag(pt);
+    };
+
+    const handleWindowMouseUp = (e: MouseEvent) => {
+      const pt = getScreenNormalized(e);
+      finishDrawing(pt);
+    };
+
+    window.addEventListener('mousemove', handleWindowMouseMove);
+    window.addEventListener('mouseup', handleWindowMouseUp);
+
+    return () => {
+      window.removeEventListener('mousemove', handleWindowMouseMove);
+      window.removeEventListener('mouseup', handleWindowMouseUp);
+    };
+  }, [drawStart, currentDrag, viewport]);
+
+  // Compute canonical coordinates of temporary drag box
+  const tempBoxCanonical =
     drawStart && currentDrag
-      ? {
-          x: Math.min(drawStart.x, currentDrag.x) * imageWidth,
-          y: Math.min(drawStart.y, currentDrag.y) * imageHeight,
-          w: Math.abs(currentDrag.x - drawStart.x) * imageWidth,
-          h: Math.abs(currentDrag.y - drawStart.y) * imageHeight,
-        }
+      ? screenDragToCanonicalBox(drawStart, currentDrag, viewport.rotation || 0)
       : null;
+
+  const tempBox = tempBoxCanonical
+    ? {
+        x: tempBoxCanonical.norm_x * imageWidth,
+        y: tempBoxCanonical.norm_y * imageHeight,
+        w: tempBoxCanonical.norm_w * imageWidth,
+        h: tempBoxCanonical.norm_h * imageHeight,
+      }
+    : null;
 
   return (
     <svg
       ref={svgRef}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
       viewBox={`0 0 ${imageWidth} ${imageHeight}`}
       className={`absolute inset-0 w-full h-full select-none ${
         activeTool === 'box'
@@ -155,6 +207,13 @@ export const SvgAnnotationLayer: React.FC<SvgAnnotationLayerProps> = ({
         };
         const strokeColor = colorMap[box.severity] || '#3b82f6';
 
+        // Screen-Space Invariant Sizing calculation
+        const invZoom = 1 / Math.max(0.01, viewport.zoom);
+        const rot = viewport.rotation || 0;
+        const badgeH = 18;
+        const badgeW = Math.max(32, (index + 1).toString().length * 9 + 18);
+        const handleRadius = Math.max(3, Math.min(10, 4 * invZoom));
+
         return (
           <g
             key={box.id}
@@ -167,46 +226,52 @@ export const SvgAnnotationLayer: React.FC<SvgAnnotationLayerProps> = ({
               setActiveEditingBox(box);
             }}
           >
-            {/* Box Rect */}
+            {/* Box Rect with non-scaling stroke */}
             <rect
               x={x}
               y={y}
               width={w}
               height={h}
+              vectorEffect="non-scaling-stroke"
               fill={isSelected || isHovered ? `${strokeColor}25` : `${strokeColor}10`}
               stroke={strokeColor}
-              strokeWidth={isSelected || isHovered ? 4 : 2}
+              strokeWidth={isSelected || isHovered ? 3.5 : 2}
               strokeDasharray={isSelected ? '6 3' : 'none'}
               rx={3}
             />
 
             {/* Corner Handle Indicators */}
             {(isSelected || isHovered) && (
-              <>
-                <circle cx={x} cy={y} r={4} fill={strokeColor} />
-                <circle cx={x + w} cy={y} r={4} fill={strokeColor} />
-                <circle cx={x} cy={y + h} r={4} fill={strokeColor} />
-                <circle cx={x + w} cy={y + h} r={4} fill={strokeColor} />
-              </>
+              <g style={{ pointerEvents: 'none' }}>
+                <circle cx={x} cy={y} r={handleRadius} fill={strokeColor} />
+                <circle cx={x + w} cy={y} r={handleRadius} fill={strokeColor} />
+                <circle cx={x} cy={y + h} r={handleRadius} fill={strokeColor} />
+                <circle cx={x + w} cy={y + h} r={handleRadius} fill={strokeColor} />
+              </g>
             )}
 
-            {/* Badge Pill #ID */}
-            <g transform={`translate(${x}, ${Math.max(16, y - 6)})`}>
+            {/* Badge Pill #ID: Screen-Space Invariant & Counter-Rotated (Always Horizontal & Crisp) */}
+            <g
+              transform={`translate(${x}, ${y}) scale(${invZoom}) rotate(${-rot}) translate(0, -${badgeH + 4})`}
+              className="pointer-events-auto cursor-pointer"
+            >
               <rect
                 x={0}
-                y={-14}
-                width={Math.max(28, (index + 1).toString().length * 10 + 16)}
-                height={16}
+                y={0}
+                width={badgeW}
+                height={badgeH}
                 rx={4}
                 fill={strokeColor}
+                className="shadow-md"
               />
               <text
-                x={6}
-                y={-2}
+                x={badgeW / 2}
+                y={13}
+                textAnchor="middle"
                 fill="#ffffff"
                 fontSize={11}
                 fontWeight="bold"
-                fontFamily="sans-serif"
+                fontFamily="ui-monospace, monospace, sans-serif"
               >
                 #{index + 1}
               </text>
@@ -222,6 +287,7 @@ export const SvgAnnotationLayer: React.FC<SvgAnnotationLayerProps> = ({
           y={tempBox.y}
           width={tempBox.w}
           height={tempBox.h}
+          vectorEffect="non-scaling-stroke"
           fill="rgba(59, 130, 246, 0.2)"
           stroke="#3b82f6"
           strokeWidth={2}
