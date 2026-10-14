@@ -36,6 +36,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     setIsSidebarOpen,
     runId,
     resetAll,
+    loupeScaleFactor,
   } = useInspectionStore();
 
   const zoomPercent = Math.round(viewport.zoom * 100);
@@ -102,7 +103,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         {/* Tool: Loupe Magnifier */}
         <button
           onClick={() => setActiveTool(activeTool === 'loupe' ? 'pan' : 'loupe')}
-          title="Kính lúp soi nét sub-pixel 4x đồng bộ 4 khung (L)"
+          title={`Kính lúp soi nét tương đối (L) • Độ phóng ${loupeScaleFactor.toFixed(1)}x (Shift + Lăn chuột hoặc phím [ / ])`}
           className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
             activeTool === 'loupe'
               ? 'bg-cyan-600 text-white shadow-sm ring-1 ring-cyan-400'
@@ -110,7 +111,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           }`}
         >
           <Search className="w-3.5 h-3.5" />
-          <span className="hidden md:inline">Kính Lúp (L)</span>
+          <span className="hidden md:inline">
+            {activeTool === 'loupe' ? `Kính Lúp (${loupeScaleFactor.toFixed(1)}x)` : 'Kính Lúp (L)'}
+          </span>
         </button>
 
         {/* Tool: Flicker / Blink Compare */}

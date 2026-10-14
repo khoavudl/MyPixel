@@ -2,15 +2,28 @@ import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { useInspectionStore } from '../store/useInspectionStore';
 
 export const useSyncedViewport = (containerRef: React.RefObject<HTMLDivElement | null>) => {
-  const { viewport, setViewport, activeTool } = useInspectionStore();
+  const {
+    viewport,
+    setViewport,
+    activeTool,
+    loupeScaleFactor,
+    setLoupeScaleFactor,
+  } = useInspectionStore();
   const [isDragging, setIsDragging] = useState(false);
   const dragStartRef = useRef<{ x: number; y: number; initialPanX: number; initialPanY: number } | null>(null);
 
-  // Mouse wheel zoom to cursor
+  // Mouse wheel zoom to cursor (or adjust loupe factor when Shift is held)
   const handleWheel = useCallback(
     (e: WheelEvent) => {
       e.preventDefault();
       if (!containerRef.current) return;
+
+      // If in loupe mode and Shift is held, adjust loupe magnification factor directly
+      if (activeTool === 'loupe' && e.shiftKey) {
+        const delta = e.deltaY < 0 ? 0.5 : -0.5;
+        setLoupeScaleFactor(loupeScaleFactor + delta);
+        return;
+      }
 
       const rect = containerRef.current.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
@@ -34,7 +47,7 @@ export const useSyncedViewport = (containerRef: React.RefObject<HTMLDivElement |
         panY: newPanY,
       });
     },
-    [containerRef, viewport, setViewport]
+    [containerRef, viewport, setViewport, activeTool, loupeScaleFactor, setLoupeScaleFactor]
   );
 
   // Attach non-passive wheel listener to allow e.preventDefault()

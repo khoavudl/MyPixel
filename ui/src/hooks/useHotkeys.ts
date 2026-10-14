@@ -12,6 +12,8 @@ export const useHotkeys = (onFitToScreen?: () => void) => {
     setIsSynced,
     setIsFlickering,
     toggleFlickerTarget,
+    loupeScaleFactor,
+    setLoupeScaleFactor,
   } = useInspectionStore();
 
   const flickerIntervalRef = useRef<number | null>(null);
@@ -54,6 +56,14 @@ export const useHotkeys = (onFitToScreen?: () => void) => {
         setViewport({ zoom: Math.min(32, viewport.zoom * 1.25) });
       } else if (e.key === '-' || e.key === '_') {
         setViewport({ zoom: Math.max(0.05, viewport.zoom * 0.8) });
+      } else if (e.key === '[') {
+        if (activeTool === 'loupe') {
+          setLoupeScaleFactor(loupeScaleFactor - 0.5);
+        }
+      } else if (e.key === ']') {
+        if (activeTool === 'loupe') {
+          setLoupeScaleFactor(loupeScaleFactor + 0.5);
+        }
       }
     };
 
@@ -88,6 +98,8 @@ export const useHotkeys = (onFitToScreen?: () => void) => {
     setIsSynced,
     setIsFlickering,
     toggleFlickerTarget,
+    loupeScaleFactor,
+    setLoupeScaleFactor,
     onFitToScreen,
   ]);
 };

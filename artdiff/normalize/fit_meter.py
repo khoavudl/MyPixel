@@ -119,6 +119,20 @@ def measure_fit(
     )
 
 
+def _downscale_visual(img: np.ndarray, max_edge: int = 2048) -> np.ndarray:
+    """Downscale image keeping aspect ratio if longest edge > max_edge."""
+    if max_edge <= 0:
+        return img
+    h, w = img.shape[:2]
+    longest = max(h, w)
+    if longest <= max_edge:
+        return img
+    scale = float(max_edge) / float(longest)
+    new_w = max(1, int(round(w * scale)))
+    new_h = max(1, int(round(h * scale)))
+    return cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_AREA)
+
+
 def save_fit_visuals(
     a: Artboard,
     b_aligned: np.ndarray,
@@ -126,6 +140,7 @@ def save_fit_visuals(
     fit_report: FitReport,
     out_dir: str | Path,
     max_grid_shift_px: float = 1.0,
+    max_edge: int = 2048,
 ) -> dict[str, str]:
     """Generate and save overlay.png, absdiff_heatmap.png, and grid_shift.png."""
     out_path = Path(out_dir)
@@ -141,7 +156,7 @@ def save_fit_visuals(
     overlay[:, :, 1] = b_gray  # Green
     overlay[:, :, 2] = a_gray  # Red
     overlay_file = out_path / "overlay.png"
-    cv2.imwrite(str(overlay_file), overlay)
+    cv2.imwrite(str(overlay_file), _downscale_visual(overlay, max_edge=max_edge))
 
     # 2. absdiff_heatmap.png: |A - B_aligned| on grayscale, normalized, colormapped, masked
     absdiff = cv2.absdiff(a_gray, b_gray)
@@ -153,10 +168,16 @@ def save_fit_visuals(
         ).astype(np.uint8)
     else:
         norm_diff = absdiff_masked
+
+    # Preserve small 1px defects when downscaling by applying slight dilation
+    if max_edge > 0 and max(h, w) > max_edge:
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+        norm_diff = cv2.dilate(norm_diff, kernel)
+
     heatmap = cv2.applyColorMap(norm_diff, cv2.COLORMAP_JET)
     heatmap[valid_mask == 0] = (0, 0, 0)
     heatmap_file = out_path / "absdiff_heatmap.png"
-    cv2.imwrite(str(heatmap_file), heatmap)
+    cv2.imwrite(str(heatmap_file), _downscale_visual(heatmap, max_edge=max_edge))
 
     # 3. grid_shift.png: grid overlay with per-cell shift and color status
     grid_vis = cv2.addWeighted(a.img, 0.45, b_aligned, 0.45, 25.0)
@@ -229,7 +250,7 @@ def save_fit_visuals(
             )
 
     grid_file = out_path / "grid_shift.png"
-    cv2.imwrite(str(grid_file), grid_vis)
+    cv2.imwrite(str(grid_file), _downscale_visual(grid_vis, max_edge=max_edge))
 
     return {
         "overlay": str(overlay_file),

@@ -1,7 +1,7 @@
 # TIẾN ĐỘ DỰ ÁN (PROJECT PROGRESS) – MYPIXEL (ARTDIFF)
-> **Cập nhật lần cuối:** 2026-10-13  
-> **Trạng thái hiện tại:** Đã hoàn thành Milestone 2A.1, 2A.2, 2A.3 & 2A.4. Sẵn sàng cho Milestone 2A.5 (1-Click Export Report).  
-> **Tổng số bài test tự động:** 34/34 PASS (100%)
+> **Cập nhật lần cuối:** 2026-10-14  
+> **Trạng thái hiện tại:** Đã hoàn thành Milestone 2A.1, 2A.2, 2A.3, 2A.4 & Tối ưu hiệu năng ảnh chỉ báo (Indicator Downscaling 2048px). Sẵn sàng cho Milestone 2A.5 (1-Click Export Report).  
+> **Tổng số bài test tự động:** 35/35 PASS (100%)
 
 ---
 
@@ -49,12 +49,13 @@
 * [`ui/src/components/ViewportGrid.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/ViewportGrid.tsx): Bố cục chia cột 4 khung hình (2 lớn bên trái 62%, 2 nhỏ bên phải 38%).
 * [`ui/src/components/Toolbar.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/Toolbar.tsx): Thanh công cụ kiểm định chuyên dụng: Pan (H), Draw Box (B), Loupe (L), Flicker (Space), Zoom, Fit screen (0), 100% (1), 4-Way Sync toggle (S), và nút mở Danh sách lỗi.
 * [`ui/src/components/SvgAnnotationLayer.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/SvgAnnotationLayer.tsx): Lớp vẽ SVG đồng bộ 4 khung hình. Vẽ box trên bất kỳ khung nào thì hiển thị tức thì trên cả 4 khung với toạ độ chuẩn hoá $[0,1]$ và mm thực tế.
-* [`ui/src/components/LoupeMagnifier.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/LoupeMagnifier.tsx): Kính lúp tròn phóng đại 4x soi nét sub-pixel di chuyển mượt theo chuột, hiển thị toạ độ mm thực và tâm ngắm crosshair.
+* [`ui/src/components/LoupeMagnifier.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/LoupeMagnifier.tsx): Kính lúp tròn phóng đại tương đối (Relative Magnification `effectiveZoom = viewport.zoom * loupeScaleFactor`), tự động co dãn mượt mà chạy theo nhịp lăn chuột zoom in/out, hỗ trợ phím tắt `[` / `]` và `Shift + Lăn chuột` điều chỉnh hệ số phóng từ 1.5x - 8.0x, tâm ngắm crosshair và toạ độ mm thực tế.
 * [`ui/src/components/AnnotationModal.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/AnnotationModal.tsx): Hộp thoại modal gán nhãn lỗi (Tag, Mức độ nghiêm trọng, Note), hiển thị toạ độ mm và tự động đồng bộ API backend.
 * [`ui/src/components/DefectSidebar.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/DefectSidebar.tsx): Thanh sidebar danh sách lỗi (Punch List) phân loại Critical/Major/Minor, hỗ trợ bấm vào là cả 4 khung hình bay đến tâm box (`jumpToBox`), nút 1-Click Export.
+* [`ui/src/components/CanvasViewer.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/CanvasViewer.tsx): Khung hiển thị ảnh độc lập áp dụng GPU Hardware-Accelerated transform (`translate3d` và `scale`), hỗ trợ không gian toạ độ ảo (Virtual Coordinate Space) cho ảnh chỉ báo (Overlay/Heatmap) đồng bộ 100% với ảnh Brand full-res, chống ghi đè kích thước store và bật willChange khi dragging.
 * [`ui/src/components/Workspace.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/Workspace.tsx): Trạm làm việc kiểm định hoàn chỉnh kết hợp Toolbar, ViewportGrid, DefectSidebar, AnnotationModal và Hotkeys.
 * [`ui/src/App.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/App.tsx) & [`ui/src/main.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/main.tsx): Layout Dark Mode hoàn chỉnh.
-* [`ui/dist/`](file:///Users/tindn/Downloads/MyPixel-v1/ui/dist): Bản build production sẵn sàng (1.31s).
+* [`ui/dist/`](file:///Users/tindn/Downloads/MyPixel-v1/ui/dist): Bản build production sẵn sàng (1.36s).
 
 ---
 
@@ -67,13 +68,13 @@
 # Kết quả:
 tests/test_aligner.py ..                                                 [  5%]
 tests/test_cropper.py ...                                                [ 13%]
-tests/test_eval.py ........                                              [ 36%]
-tests/test_fit_meter.py ..                                               [ 41%]
-tests/test_frame_detector.py ..s                                         [ 50%]
-tests/test_pdf_renderer.py ..s                                           [ 58%]
-tests/test_pipeline_phase1.py ..                                         [ 63%]
+tests/test_eval.py ........                                              [ 35%]
+tests/test_fit_meter.py ...                                              [ 43%]
+tests/test_frame_detector.py ..s                                         [ 51%]
+tests/test_pdf_renderer.py ..s                                           [ 59%]
+tests/test_pipeline_phase1.py ..                                         [ 64%]
 tests/test_server.py ....                                                [ 75%]
 tests/test_size_gate.py ....                                             [ 86%]
 tests/test_units.py .....                                                [100%]
-================== 34 passed, 2 skipped in 1.81s ===================
+================== 35 passed, 2 skipped, 6 warnings in 2.26s ===================
 ```

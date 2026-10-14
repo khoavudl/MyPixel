@@ -82,8 +82,18 @@ export const Dropzone: React.FC = () => {
     if (file && file.type === 'application/pdf') {
       if (target === 'brand') setBrandFile(file);
       else setVendorFile(file);
+      autoDetectPresetSize(file.name);
     } else {
       setErrorMsg('Vui lòng chỉ kéo thả file định dạng PDF (.pdf).');
+    }
+  };
+
+  const autoDetectPresetSize = (fileName: string) => {
+    const lower = fileName.toLowerCase();
+    if (lower.includes('v1') || lower.includes('v2') || lower.includes('krack')) {
+      setTargetSizeMm('217x200.5');
+    } else if (lower.includes('brand') || lower.includes('vendor') || lower.includes('coffee') || lower.includes('mac')) {
+      setTargetSizeMm('620x250');
     }
   };
 
@@ -142,7 +152,10 @@ export const Dropzone: React.FC = () => {
             className="hidden"
             onChange={(e) => {
               const file = e.target.files?.[0];
-              if (file) setBrandFile(file);
+              if (file) {
+                setBrandFile(file);
+                autoDetectPresetSize(file.name);
+              }
             }}
           />
 
@@ -208,7 +221,10 @@ export const Dropzone: React.FC = () => {
             className="hidden"
             onChange={(e) => {
               const file = e.target.files?.[0];
-              if (file) setVendorFile(file);
+              if (file) {
+                setVendorFile(file);
+                autoDetectPresetSize(file.name);
+              }
             }}
           />
 
@@ -269,14 +285,22 @@ export const Dropzone: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setTargetSizeMm('620x250')}
-                className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors"
+                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                  targetSizeMm.trim() === '620x250'
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30 ring-1 ring-blue-400'
+                    : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                }`}
               >
                 620 × 250 (Cà phê)
               </button>
               <button
                 type="button"
                 onClick={() => setTargetSizeMm('217x200.5')}
-                className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors"
+                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                  targetSizeMm.trim() === '217x200.5'
+                    ? 'bg-purple-600 text-white shadow-md shadow-purple-500/30 ring-1 ring-purple-400'
+                    : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                }`}
               >
                 217 × 200.5 (Kracks)
               </button>

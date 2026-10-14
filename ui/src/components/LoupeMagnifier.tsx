@@ -20,11 +20,13 @@ export const LoupeMagnifier: React.FC<LoupeMagnifierProps> = ({
     targetSizeMm,
     loupeNormalizedPos,
     setLoupeNormalizedPos,
+    loupeScaleFactor,
   } = useInspectionStore();
 
-  const LENS_SIZE = 180;
+  const LENS_SIZE = 190;
   const LENS_RADIUS = LENS_SIZE / 2;
-  const MAGNIFICATION = 4.0;
+  const relativeFactor = loupeScaleFactor || 3.0;
+  const effectiveZoom = Math.max(0.05, viewport.zoom * relativeFactor);
 
   // Listen to mousemove inside this container to broadcast normalized position to all 4 screens
   useEffect(() => {
@@ -114,9 +116,10 @@ export const LoupeMagnifier: React.FC<LoupeMagnifierProps> = ({
   const posXmm = (loupeNormalizedPos.x * targetW).toFixed(2);
   const posYmm = (loupeNormalizedPos.y * targetH).toFixed(2);
 
-  // Background position for 4x magnification
-  const bgX = -wx * MAGNIFICATION + LENS_RADIUS;
-  const bgY = -wy * MAGNIFICATION + LENS_RADIUS;
+  // Background position for relative magnification:
+  // wx and wy are scaled by effectiveZoom in the lens
+  const bgX = -wx * effectiveZoom + LENS_RADIUS;
+  const bgY = -wy * effectiveZoom + LENS_RADIUS;
 
   return (
     <div
@@ -127,7 +130,7 @@ export const LoupeMagnifier: React.FC<LoupeMagnifierProps> = ({
         top: screenY - LENS_RADIUS,
         backgroundImage: `url(${imageUrl})`,
         backgroundRepeat: 'no-repeat',
-        backgroundSize: `${imageWidth * MAGNIFICATION}px ${imageHeight * MAGNIFICATION}px`,
+        backgroundSize: `${imageWidth * effectiveZoom}px ${imageHeight * effectiveZoom}px`,
         backgroundPosition: `${bgX}px ${bgY}px`,
       }}
       className="absolute pointer-events-none rounded-full border-4 border-cyan-400 shadow-2xl z-40 overflow-hidden ring-4 ring-black/40 backdrop-blur-none"
@@ -140,8 +143,10 @@ export const LoupeMagnifier: React.FC<LoupeMagnifierProps> = ({
       </div>
 
       {/* Pill: Zoom factor & Physical location */}
-      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-slate-950/90 border border-slate-700 text-[10px] font-mono text-cyan-300 shadow font-bold whitespace-nowrap">
-        {MAGNIFICATION}x • {posXmm}, {posYmm} mm
+      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-slate-950/90 border border-slate-700 text-[10px] font-mono text-cyan-300 shadow font-bold whitespace-nowrap flex items-center gap-1.5">
+        <span>{relativeFactor.toFixed(1)}x ({Math.round(effectiveZoom * 100)}%)</span>
+        <span className="text-slate-500">•</span>
+        <span>{posXmm}, {posYmm} mm</span>
       </div>
     </div>
   );

@@ -21,6 +21,7 @@ export const CanvasViewer: React.FC<CanvasViewerProps> = ({
   badgeColorClass,
   imageUrl,
   altImageUrl,
+  isMain = false,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const {
@@ -28,6 +29,7 @@ export const CanvasViewer: React.FC<CanvasViewerProps> = ({
     activeTool,
     isFlickering,
     flickerTarget,
+    naturalImageSize,
     setNaturalImageSize,
   } = useInspectionStore();
   const { onMouseDown, isDragging } = useSyncedViewport(containerRef);
@@ -42,6 +44,14 @@ export const CanvasViewer: React.FC<CanvasViewerProps> = ({
         ? imageUrl
         : altImageUrl
       : imageUrl;
+
+  // Determine effective virtual dimensions (master size from Brand or self natural size)
+  const effectiveWidth = isMain
+    ? naturalSize?.w || 0
+    : naturalImageSize?.w || naturalSize?.w || 0;
+  const effectiveHeight = isMain
+    ? naturalSize?.h || 0
+    : naturalImageSize?.h || naturalSize?.h || 0;
 
   return (
     <div
@@ -77,8 +87,13 @@ export const CanvasViewer: React.FC<CanvasViewerProps> = ({
 
       {/* Floating Resolution Pill */}
       {naturalSize && (
-        <div className="absolute top-3 right-3 z-20 px-2 py-0.5 rounded bg-slate-900/80 border border-slate-800 text-[10px] font-mono text-slate-400 pointer-events-none">
-          {naturalSize.w} × {naturalSize.h} px
+        <div className="absolute top-3 right-3 z-20 px-2 py-0.5 rounded bg-slate-900/80 border border-slate-800 text-[10px] font-mono text-slate-400 pointer-events-none flex items-center gap-1.5">
+          <span>{naturalSize.w} × {naturalSize.h} px</span>
+          {!isMain && (
+            <span className="text-[9px] px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 font-semibold uppercase">
+              Indicator
+            </span>
+          )}
         </div>
       )}
 
@@ -98,30 +113,43 @@ export const CanvasViewer: React.FC<CanvasViewerProps> = ({
         style={{
           transform: `translate3d(${viewport.panX}px, ${viewport.panY}px, 0px) scale(${viewport.zoom})`,
           transformOrigin: '0 0',
-          willChange: 'transform',
+          willChange: isDragging ? 'transform' : undefined,
         }}
       >
         {activeImageSrc ? (
-          <div className="relative">
+          <div
+            className="relative"
+            style={{
+              width: effectiveWidth > 0 ? effectiveWidth : undefined,
+              height: effectiveHeight > 0 ? effectiveHeight : undefined,
+            }}
+          >
             <img
               src={activeImageSrc}
               alt={title}
               draggable={false}
+              style={{
+                width: effectiveWidth > 0 ? effectiveWidth : undefined,
+                height: effectiveHeight > 0 ? effectiveHeight : undefined,
+                display: 'block',
+              }}
               onLoad={(e) => {
                 setImageLoaded(true);
                 const img = e.currentTarget;
                 const size = { w: img.naturalWidth, h: img.naturalHeight };
                 setNaturalSize(size);
-                setNaturalImageSize(size);
+                if (isMain) {
+                  setNaturalImageSize(size);
+                }
               }}
-              className="block pointer-events-none max-w-none shadow-2xl"
+              className="pointer-events-none max-w-none shadow-2xl"
             />
 
             {/* Cross-canvas synchronized SVG Bounding Box overlay */}
-            {naturalSize && (
+            {effectiveWidth > 0 && effectiveHeight > 0 && (
               <SvgAnnotationLayer
-                imageWidth={naturalSize.w}
-                imageHeight={naturalSize.h}
+                imageWidth={effectiveWidth}
+                imageHeight={effectiveHeight}
               />
             )}
           </div>
@@ -133,12 +161,12 @@ export const CanvasViewer: React.FC<CanvasViewerProps> = ({
       </div>
 
       {/* Loupe Magnifier Tool */}
-      {naturalSize && (
+      {effectiveWidth > 0 && effectiveHeight > 0 && (
         <LoupeMagnifier
           containerRef={containerRef}
           imageUrl={activeImageSrc}
-          imageWidth={naturalSize.w}
-          imageHeight={naturalSize.h}
+          imageWidth={effectiveWidth}
+          imageHeight={effectiveHeight}
         />
       )}
     </div>

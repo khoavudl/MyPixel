@@ -31,6 +31,7 @@ interface InspectionState {
   isFlickering: boolean;
   flickerTarget: 'brand' | 'vendor';
   loupeNormalizedPos: { x: number; y: number } | null;
+  loupeScaleFactor: number;
 
   // Annotations
   annotations: DefectBox[];
@@ -54,6 +55,7 @@ interface InspectionState {
   setViewMode: (mode: AppViewMode) => void;
   setActiveTool: (tool: ActiveTool) => void;
   setLoupeNormalizedPos: (pos: { x: number; y: number } | null) => void;
+  setLoupeScaleFactor: (factor: number) => void;
   setViewport: (transform: Partial<ViewportTransform>) => void;
   resetViewport: () => void;
   setIsSynced: (synced: boolean) => void;
@@ -96,6 +98,7 @@ export const useInspectionStore = create<InspectionState>((set) => ({
   isFlickering: false,
   flickerTarget: 'brand',
   loupeNormalizedPos: null,
+  loupeScaleFactor: 3.0,
 
   annotations: [],
   selectedBoxId: null,
@@ -121,6 +124,8 @@ export const useInspectionStore = create<InspectionState>((set) => ({
       loupeNormalizedPos: null,
     }),
   setLoupeNormalizedPos: (pos) => set({ loupeNormalizedPos: pos }),
+  setLoupeScaleFactor: (factor) =>
+    set({ loupeScaleFactor: Math.min(8.0, Math.max(1.5, Math.round(factor * 10) / 10)) }),
   setViewport: (transform) =>
     set((state) => ({
       viewport: { ...state.viewport, ...transform },
