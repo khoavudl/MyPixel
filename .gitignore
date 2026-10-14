@@ -5,7 +5,7 @@ __pycache__/
 .pytest_cache/
 .DS_Store
 sample/
-dist/
-build/
+/dist/
+/build/
 .pyi_cache/
 *.iconset/
