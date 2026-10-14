@@ -249,10 +249,15 @@ export const useInspectionStore = create<InspectionState>((set) => ({
 
       const boxDisplayW =
         rot === 90 || rot === 270 ? box.norm_h * imgH : box.norm_w * imgW;
-      const targetZoom = Math.min(
-        3.5,
-        Math.max(1.0, containerW / (boxDisplayW * 2.5))
-      );
+      const boxDisplayH =
+        rot === 90 || rot === 270 ? box.norm_w * imgW : box.norm_h * imgH;
+
+      // 1.8 padding factor ensures generous breathing room (~30-40% margin) around the box
+      const paddingFactor = 1.8;
+      const zoomW = containerW / Math.max(10, boxDisplayW * paddingFactor);
+      const zoomH = containerH / Math.max(10, boxDisplayH * paddingFactor);
+      const targetZoom = Math.min(3.0, Math.max(0.6, Math.min(zoomW, zoomH)));
+
       const newPanX = containerW / 2 - boxCenterX * targetZoom;
       const newPanY = containerH / 2 - boxCenterY * targetZoom;
 

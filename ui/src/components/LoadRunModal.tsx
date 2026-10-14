@@ -5,12 +5,11 @@ import {
   Search,
   Layers,
   AlertTriangle,
-  CheckCircle2,
-  XCircle,
   ArrowRight,
   Loader2,
   FileText,
   Clock,
+  Trash2,
 } from 'lucide-react';
 import { useInspectionStore } from '../store/useInspectionStore';
 import { PastRunSummary, RunStatusResponse, DefectBox } from '../types';
@@ -93,6 +92,31 @@ export const LoadRunModal: React.FC<LoadRunModalProps> = ({ isOpen, onClose }) =
       alert(err instanceof Error ? err.message : 'Error opening inspection session');
     } finally {
       setLoadingRunId(null);
+    }
+  };
+
+  const [deletingRunId, setDeletingRunId] = useState<string | null>(null);
+
+  const handleDeleteRun = async (run: PastRunSummary) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to delete session "${run.run_id}"?\nThis folder will be moved to the Trash.`
+    );
+    if (!confirmed) return;
+
+    setDeletingRunId(run.run_id);
+    try {
+      const res = await fetch(`/api/runs/${run.run_id}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || 'Failed to delete run');
+      }
+      setRuns((prev) => prev.filter((r) => r.run_id !== run.run_id));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Error deleting run');
+    } finally {
+      setDeletingRunId(null);
     }
   };
 
@@ -183,8 +207,7 @@ export const LoadRunModal: React.FC<LoadRunModalProps> = ({ isOpen, onClose }) =
           ) : (
             filteredRuns.map((r) => {
               const isSelectedLoading = loadingRunId === r.run_id;
-              const isPass = r.status === 'PASS';
-              const isFail = r.status === 'FIT_FAIL';
+              const isDeleting = deletingRunId === r.run_id;
 
               return (
                 <div
@@ -193,6 +216,7 @@ export const LoadRunModal: React.FC<LoadRunModalProps> = ({ isOpen, onClose }) =
                 >
                   {/* Left: Metadata */}
                   <div className="min-w-0 flex-1">
+                    {/* Line 1: Run Name, Run Type, Defect Count */}
                     <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                       <span className="font-mono text-xs font-bold text-blue-400">
                         {r.run_id}
@@ -209,37 +233,16 @@ export const LoadRunModal: React.FC<LoadRunModalProps> = ({ isOpen, onClose }) =
                         </span>
                       )}
 
-                      {/* Status Pill */}
+                      {/* Annotations Count */}
                       <span
-                        className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 ${
-                          isPass
-                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                            : isFail
-                            ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                            : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                        className={`px-2 py-0.5 rounded text-[10px] font-medium flex items-center gap-1 ${
+                          r.annotations_count > 0
+                            ? 'bg-amber-500/10 border border-amber-500/20 text-amber-300 font-semibold'
+                            : 'bg-slate-900 border border-slate-800 text-slate-400'
                         }`}
                       >
-                        {isPass ? (
-                          <CheckCircle2 className="w-3 h-3" />
-                        ) : (
-                          <XCircle className="w-3 h-3" />
-                        )}
-                        {r.status}
+                        <Layers className="w-3 h-3" /> {r.annotations_count} {r.annotations_count === 1 ? 'defect' : 'defects'}
                       </span>
-
-                      {/* Target Size */}
-                      {r.target_size_mm && (
-                        <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-[10px] font-mono text-slate-400">
-                          {r.target_size_mm[0]} × {r.target_size_mm[1]} mm
-                        </span>
-                      )}
-
-                      {/* Annotations Count */}
-                      {r.annotations_count > 0 && (
-                        <span className="px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[10px] font-medium flex items-center gap-1">
-                          <Layers className="w-3 h-3" /> {r.annotations_count} {r.annotations_count === 1 ? 'defect' : 'defects'}
-                        </span>
-                      )}
                     </div>
 
                     {/* Files & Timestamp */}
@@ -278,24 +281,49 @@ export const LoadRunModal: React.FC<LoadRunModalProps> = ({ isOpen, onClose }) =
                     </div>
                   </div>
 
-                  {/* Right: Action Button */}
-                  <button
-                    onClick={() => handleSelectRun(r)}
-                    disabled={isSelectedLoading}
-                    className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all shadow-md shadow-blue-500/20 flex items-center justify-center gap-2 cursor-pointer shrink-0 disabled:opacity-50"
-                  >
-                    {isSelectedLoading ? (
-                      <>
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        <span>Opening...</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>Open Session</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </>
-                    )}
-                  </button>
+                  {/* Right: Actions */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      disabled={isDeleting || isSelectedLoading}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteRun(r);
+                      }}
+                      title="Delete run (Move to Trash)"
+                      className="px-3 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 hover:text-red-300 font-semibold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    >
+                      {isDeleting ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <span>Deleting...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Delete</span>
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      onClick={() => handleSelectRun(r)}
+                      disabled={isSelectedLoading || isDeleting}
+                      className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all shadow-md shadow-blue-500/20 flex items-center justify-center gap-2 cursor-pointer shrink-0 disabled:opacity-50"
+                    >
+                      {isSelectedLoading ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <span>Opening...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>Open Session</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
               );
             })

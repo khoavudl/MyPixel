@@ -135,12 +135,31 @@ def test_annotations_crud_and_export(client, sample_pdfs):
     # Export report (HTML)
     export_res = client.post(
         "/api/export",
-        json={"run_id": run_id, "format": "html"},
+        json={"run_id": run_id, "format": "html", "inspector_name": "QA Specialist"},
     )
     assert export_res.status_code == 200
     assert "text/html" in export_res.headers["content-type"]
-    assert "BIÊN BẢN KIỂM ĐỊNH BAO BÌ" in export_res.text
+    assert "ARTWORK REPORT" in export_res.text
     assert "Mất dấu tiếng Việt" in export_res.text
+    assert "QA Specialist" in export_res.text
+
+    # Export report (DOCX)
+    export_docx = client.post(
+        "/api/export",
+        json={"run_id": run_id, "format": "docx", "inspector_name": "QA Specialist"},
+    )
+    assert export_docx.status_code == 200
+    assert "openxmlformats" in export_docx.headers["content-type"]
+    assert len(export_docx.content) > 1000
+
+    # Export report (PDF)
+    export_pdf = client.post(
+        "/api/export",
+        json={"run_id": run_id, "format": "pdf", "inspector_name": "QA Specialist"},
+    )
+    assert export_pdf.status_code == 200
+    assert "application/pdf" in export_pdf.headers["content-type"]
+    assert export_pdf.content.startswith(b"%PDF")
 
 
 def test_list_past_runs(client):
@@ -217,5 +236,38 @@ def test_inspect_single_artwork_pdf(client, sample_pdfs):
     assert matched[0]["run_type"] == "single"
     assert matched[0]["brand_filename"] == "single_brand.pdf"
     assert matched[0]["annotations_count"] == 1
+
+
+def test_delete_run(client, sample_pdfs):
+    brand_pdf, _ = sample_pdfs
+    with open(brand_pdf, "rb") as f:
+        res = client.post(
+            "/api/inspect_single",
+            data={"target_size_mm": "100x80", "page": "1", "crop_mode": "auto"},
+            files={"file": ("to_delete.pdf", f, "application/pdf")},
+        )
+    assert res.status_code == 200
+    run_id = res.json()["run_id"]
+
+    # Verify run exists
+    assert client.get(f"/api/runs/{run_id}").status_code == 200
+
+    # Delete run
+    del_res = client.delete(f"/api/runs/{run_id}")
+    assert del_res.status_code == 200
+    assert del_res.json() == {"status": "deleted", "run_id": run_id}
+
+    # Verify run is no longer accessible
+    assert client.get(f"/api/runs/{run_id}").status_code == 404
+
+    # Verify run is removed from past runs
+    past_runs = client.get("/api/runs").json()
+    assert not any(r["run_id"] == run_id for r in past_runs)
+
+    # Deleting non-existent run returns 404
+    assert client.delete(f"/api/runs/{run_id}").status_code == 404
+
+    # Path traversal returns 400
+    assert client.delete("/api/runs/..foo").status_code == 400
 
 

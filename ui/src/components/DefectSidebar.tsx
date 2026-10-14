@@ -7,10 +7,10 @@ import {
   Edit2,
   Trash2,
   Navigation,
-  CheckCircle,
 } from 'lucide-react';
 import { useInspectionStore } from '../store/useInspectionStore';
 import { DefectBox } from '../types';
+import { ExportModal } from './ExportModal';
 
 export const DefectSidebar: React.FC = () => {
   const {
@@ -24,43 +24,9 @@ export const DefectSidebar: React.FC = () => {
     jumpToBox,
     isSidebarOpen,
     setIsSidebarOpen,
-    runId,
   } = useInspectionStore();
 
-  const [isExporting, setIsExporting] = useState(false);
-  const [exportSuccess, setExportSuccess] = useState(false);
-
-  const handleExport = async (format: 'html' | 'json' = 'html') => {
-    if (!runId) return;
-    setIsExporting(true);
-
-    try {
-      const res = await fetch('/api/export', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ run_id: runId, format }),
-      });
-
-      if (!res.ok) throw new Error('Failed to export report');
-
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `audit_report_${runId}.${format}`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
-      setExportSuccess(true);
-      setTimeout(() => setExportSuccess(false), 3000);
-    } catch (err) {
-      console.error('Export error:', err);
-    } finally {
-      setIsExporting(false);
-    }
-  };
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   if (!isSidebarOpen) {
     return (
@@ -191,30 +157,22 @@ export const DefectSidebar: React.FC = () => {
         )}
       </div>
 
-      {/* Footer: 1-Click Export Button */}
+      {/* Footer: Export Report Button */}
       <div className="p-2.5 bg-slate-950/90 border-t border-slate-800">
         <button
-          onClick={() => handleExport('html')}
-          disabled={isExporting}
-          className={`w-full py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-lg ${
-            exportSuccess
-              ? 'bg-emerald-600 text-white shadow-emerald-600/30'
-              : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/25 cursor-pointer hover:scale-[1.01]'
-          }`}
+          onClick={() => setIsExportModalOpen(true)}
+          className="w-full py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-lg bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/25 cursor-pointer hover:scale-[1.01]"
         >
-          {exportSuccess ? (
-            <>
-              <CheckCircle className="w-3.5 h-3.5" />
-              <span>Report Downloaded</span>
-            </>
-          ) : (
-            <>
-              <FileDown className="w-3.5 h-3.5" />
-              <span>{isExporting ? 'Exporting...' : 'Export Audit Report'}</span>
-            </>
-          )}
+          <FileDown className="w-3.5 h-3.5" />
+          <span>Export Report</span>
         </button>
       </div>
+
+      {/* Export Report Dialog */}
+      <ExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+      />
     </div>
   );
 };

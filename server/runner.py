@@ -60,6 +60,13 @@ class RunManager:
         with self._lock:
             return list(self._logs.get(run_id, []))
 
+    def remove_run(self, run_id: str) -> None:
+        """Remove in-memory data for a deleted run."""
+        with self._lock:
+            self._runs.pop(run_id, None)
+            self._logs.pop(run_id, None)
+            self._connections.pop(run_id, None)
+
     async def register_websocket(self, run_id: str, websocket: WebSocket) -> None:
         await websocket.accept()
         with self._lock:

@@ -8,6 +8,8 @@ from datetime import datetime, timezone
 import json
 from pathlib import Path
 import shutil
+import subprocess
+import sys
 from typing import Annotated
 
 from fastapi import (
@@ -340,6 +342,47 @@ async def get_run_status(run_id: str) -> RunStatusResponse:
     )
 
 
+def send_to_trash(path: Path) -> bool:
+    """Safely move a file or directory to the macOS Trash (Recycle Bin), or fallback to removal."""
+    path = path.resolve()
+    if not path.exists():
+        return False
+
+    if sys.platform == "darwin":
+        try:
+            cmd = f'tell application "Finder" to delete POSIX file "{path}"'
+            res = subprocess.run(["osascript", "-e", cmd], capture_output=True, text=True, timeout=5)
+            if res.returncode == 0 and not path.exists():
+                return True
+        except Exception:
+            pass
+
+    if path.is_dir():
+        shutil.rmtree(path)
+    else:
+        path.unlink(missing_ok=True)
+    return True
+
+
+@app.delete("/api/runs/{run_id}")
+async def delete_run(run_id: str) -> dict[str, str]:
+    """Delete a historical run and move its folder to the Recycle Bin / Trash."""
+    if "/" in run_id or "\\" in run_id or ".." in run_id:
+        raise HTTPException(status_code=400, detail="Invalid run_id")
+
+    run_dir = OUT_DIR / run_id
+    if not run_dir.exists():
+        raise HTTPException(status_code=404, detail=f"Run '{run_id}' not found")
+
+    try:
+        send_to_trash(run_dir)
+        runner.remove_run(run_id)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to delete run: {str(exc)}")
+
+    return {"status": "deleted", "run_id": run_id}
+
+
 @app.get("/api/runs/{run_id}/images/{filename}")
 async def get_run_image(run_id: str, filename: str) -> FileResponse:
     """Serve generated diagnostic and crop images."""
@@ -408,11 +451,18 @@ async def export_report_endpoint(request: ExportRequest) -> FileResponse:
         run_id=request.run_id,
         annotations=annotations,
         export_format=request.format,
+        inspector_name=request.inspector_name,
     )
+    media_types = {
+        "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "pdf": "application/pdf",
+        "html": "text/html",
+        "json": "application/json",
+    }
     return FileResponse(
         exported_file,
         filename=exported_file.name,
-        media_type="text/html" if request.format == "html" else "application/json",
+        media_type=media_types.get(request.format, "application/octet-stream"),
     )
 
 

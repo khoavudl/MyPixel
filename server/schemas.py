@@ -61,7 +61,8 @@ class AnnotationsPayload(BaseModel):
 
 class ExportRequest(BaseModel):
     run_id: str
-    format: Literal["html", "json"] = "html"
+    format: Literal["docx", "pdf", "html", "json"] = "docx"
+    inspector_name: str | None = None
 
 
 class PastRunSummary(BaseModel):

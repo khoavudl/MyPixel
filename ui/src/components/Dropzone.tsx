@@ -7,8 +7,6 @@ import {
   FolderOpen,
   Layers,
   ScanSearch,
-  CheckCircle2,
-  XCircle,
   AlertTriangle,
   Loader2,
   Clock,
@@ -16,6 +14,7 @@ import {
   RefreshCw,
   Crop,
   Maximize,
+  Trash2,
 } from 'lucide-react';
 import { useInspectionStore } from '../store/useInspectionStore';
 import { DefectBox, PastRunSummary, RunStatusResponse } from '../types';
@@ -124,6 +123,32 @@ export const Dropzone: React.FC = () => {
       alert(err instanceof Error ? err.message : 'Error opening inspection session');
     } finally {
       setLoadingRunId(null);
+    }
+  };
+
+  // Delete run and move to Recycle Bin
+  const [deletingRunId, setDeletingRunId] = useState<string | null>(null);
+
+  const handleDeletePastRun = async (run: PastRunSummary) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to delete session "${run.run_id}"?\nThis folder will be moved to the Trash.`
+    );
+    if (!confirmed) return;
+
+    setDeletingRunId(run.run_id);
+    try {
+      const res = await fetch(`/api/runs/${run.run_id}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || 'Failed to delete run');
+      }
+      setPastRuns((prev) => prev.filter((r) => r.run_id !== run.run_id));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Error deleting run');
+    } finally {
+      setDeletingRunId(null);
     }
   };
 
@@ -437,8 +462,7 @@ export const Dropzone: React.FC = () => {
             ) : (
               filteredPastRuns.map((r) => {
                 const isSelectedLoading = loadingRunId === r.run_id;
-                const isPass = r.status === 'PASS';
-                const isFail = r.status === 'FIT_FAIL';
+                const isDeleting = deletingRunId === r.run_id;
 
                 return (
                   <div
@@ -446,6 +470,7 @@ export const Dropzone: React.FC = () => {
                     className="bg-slate-950/80 border border-slate-800 hover:border-slate-700 rounded-xl p-4 transition-all duration-150 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group"
                   >
                     <div className="min-w-0 flex-1">
+                      {/* Line 1: Run Name, Run Type, Defect Count */}
                       <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                         <span className="font-mono text-xs font-bold text-blue-400">{r.run_id}</span>
 
@@ -460,32 +485,17 @@ export const Dropzone: React.FC = () => {
                         )}
 
                         <span
-                          className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 ${
-                            isPass
-                              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                              : isFail
-                              ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                              : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                          className={`px-2 py-0.5 rounded text-[10px] font-medium flex items-center gap-1 ${
+                            r.annotations_count > 0
+                              ? 'bg-amber-500/10 border border-amber-500/20 text-amber-300 font-semibold'
+                              : 'bg-slate-900 border border-slate-800 text-slate-400'
                           }`}
                         >
-                          {isPass ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-                          {r.status}
+                          <Layers className="w-3 h-3" /> {r.annotations_count} {r.annotations_count === 1 ? 'defect' : 'defects'}
                         </span>
-
-                        {r.target_size_mm && (
-                          <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-[10px] font-mono text-slate-400">
-                            {r.target_size_mm[0]} × {r.target_size_mm[1]} mm
-                          </span>
-                        )}
-
-                        {r.annotations_count > 0 && (
-                          <span className="px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[10px] font-medium flex items-center gap-1">
-                            <Layers className="w-3 h-3" /> {r.annotations_count} {r.annotations_count === 1 ? 'defect' : 'defects'}
-                          </span>
-                        )}
                       </div>
 
-                      {/* File Details */}
+                      {/* Line 2: File Details */}
                       <div className="text-xs text-slate-300 mt-1.5">
                         {r.run_type === 'single' ? (
                           <div className="flex items-center gap-1 truncate">
@@ -503,6 +513,7 @@ export const Dropzone: React.FC = () => {
                         )}
                       </div>
 
+                      {/* Line 3: Timestamp */}
                       <div className="flex items-center gap-3 text-[11px] text-slate-500 mt-2">
                         <span className="flex items-center gap-1">
                           <Clock className="w-3 h-3" />
@@ -511,24 +522,50 @@ export const Dropzone: React.FC = () => {
                       </div>
                     </div>
 
-                    <button
-                      type="button"
-                      disabled={isSelectedLoading}
-                      onClick={() => handleLoadPastRun(r)}
-                      className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-all flex items-center justify-center gap-2 shadow-md cursor-pointer shrink-0 disabled:opacity-50"
-                    >
-                      {isSelectedLoading ? (
-                        <>
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          <span>Loading...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Play className="w-3.5 h-3.5 fill-current" />
-                          <span>Open Session</span>
-                        </>
-                      )}
-                    </button>
+                    {/* Actions: Delete button & Open Session */}
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        disabled={isDeleting || isSelectedLoading}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeletePastRun(r);
+                        }}
+                        title="Delete run (Move to Trash)"
+                        className="px-3 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 hover:text-red-300 font-semibold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      >
+                        {isDeleting ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            <span>Deleting...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Delete</span>
+                          </>
+                        )}
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={isSelectedLoading || isDeleting}
+                        onClick={() => handleLoadPastRun(r)}
+                        className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-all flex items-center justify-center gap-2 shadow-md cursor-pointer shrink-0 disabled:opacity-50"
+                      >
+                        {isSelectedLoading ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            <span>Loading...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Play className="w-3.5 h-3.5 fill-current" />
+                            <span>Open Session</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
                 );
               })
