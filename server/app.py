@@ -23,8 +23,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from artdiff.core.models import Frame
+from artdiff.ingest.pdf_renderer import render_page
+from artdiff.normalize.cropper import confirm_frame, crop
+from artdiff.normalize.frame_detector import detect_frame
 from artdiff.pipeline_phase1 import parse_size_mm
-from server.config import OUT_DIR, UI_DIST_DIR
+import cv2
+import yaml
+from server.config import DEFAULT_PROFILE_PATH, OUT_DIR, UI_DIST_DIR
 from server.exporter import export_audit_report
 from server.runner import runner
 from server.schemas import (
@@ -113,6 +119,112 @@ async def analyze_artwork(
     )
 
 
+@app.post("/api/inspect_single", response_model=RunStatusResponse)
+async def inspect_single_artwork(
+    file: Annotated[UploadFile, File(...)],
+    page: Annotated[int, Form()] = 1,
+    target_size_mm: Annotated[str, Form()] = "",
+    crop_mode: Annotated[str, Form()] = "auto",
+) -> RunStatusResponse:
+    """Ingest a single artwork file (PDF or image) for single-frame inspection workspace."""
+    run_id = f"single_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S_%f')}"
+    run_dir = OUT_DIR / run_id
+    upload_dir = run_dir / "uploads"
+    upload_dir.mkdir(parents=True, exist_ok=True)
+
+    filename = file.filename or "artwork.pdf"
+    file_path = upload_dir / filename
+    with open(file_path, "wb") as f:
+        shutil.copyfileobj(file.file, f)
+
+    out_img = None
+    final_size_mm: list[float] = [0.0, 0.0]
+
+    if file_path.suffix.lower() == ".pdf":
+        raster_page = render_page(file_path, page_number=page, px_per_mm=11.811, source="single")
+        profile = {}
+        if DEFAULT_PROFILE_PATH.is_file():
+            try:
+                with open(DEFAULT_PROFILE_PATH, "r", encoding="utf-8") as pf:
+                    profile = yaml.safe_load(pf) or {}
+            except Exception:
+                pass
+
+        if target_size_mm.strip() and crop_mode == "auto":
+            try:
+                size_tuple = parse_size_mm(target_size_mm)
+                det_report = detect_frame(raster_page, size_tuple, profile)
+                if det_report.selected.confidence >= 0.8:
+                    confirmed = confirm_frame(det_report, preview_path=run_dir / "frame_preview.png", mode="auto", min_auto_confidence=0.8)
+                    artboard = crop(raster_page, confirmed)
+                    out_img = artboard.img
+                    final_size_mm = [float(artboard.size_mm[0]), float(artboard.size_mm[1])]
+                else:
+                    out_img = raster_page.img
+                    final_size_mm = [float(raster_page.page_size_mm[0]), float(raster_page.page_size_mm[1])]
+            except Exception:
+                out_img = raster_page.img
+                final_size_mm = [float(raster_page.page_size_mm[0]), float(raster_page.page_size_mm[1])]
+        else:
+            out_img = raster_page.img
+            final_size_mm = [float(raster_page.page_size_mm[0]), float(raster_page.page_size_mm[1])]
+    else:
+        out_img = cv2.imread(str(file_path))
+        if out_img is None:
+            raise HTTPException(status_code=400, detail="Không thể đọc định dạng ảnh được tải lên")
+        h_px, w_px = out_img.shape[:2]
+        if target_size_mm.strip():
+            try:
+                st = parse_size_mm(target_size_mm)
+                final_size_mm = [float(st[0]), float(st[1])]
+            except Exception:
+                final_size_mm = [round(w_px / 11.811, 2), round(h_px / 11.811, 2)]
+        else:
+            final_size_mm = [round(w_px / 11.811, 2), round(h_px / 11.811, 2)]
+
+    # Save processed single-view image
+    single_path = run_dir / "single_cropped.png"
+    brand_path = run_dir / "brand_cropped.png"
+    cv2.imwrite(str(single_path), out_img)
+    cv2.imwrite(str(brand_path), out_img)
+
+    report = {
+        "run_id": run_id,
+        "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+        "mode": "single",
+        "run_type": "single",
+        "status": "PASS",
+        "exit_code": 0,
+        "target_size_mm": final_size_mm,
+        "inputs": {
+            "single": {
+                "filename": filename,
+                "page": page,
+                "pdf_path": str(file_path),
+            }
+        },
+        "image_size_px": [int(out_img.shape[1]), int(out_img.shape[0])],
+    }
+
+    report_path = run_dir / "report.json"
+    with open(report_path, "w", encoding="utf-8") as f:
+        json.dump(report, f, indent=2, ensure_ascii=False)
+
+    images = RunImages(
+        single_image=f"/api/runs/{run_id}/images/single_cropped.png",
+        brand_cropped=f"/api/runs/{run_id}/images/single_cropped.png",
+    )
+
+    return RunStatusResponse(
+        run_id=run_id,
+        status="PASS",
+        exit_code=0,
+        error=None,
+        images=images,
+        report=report,
+    )
+
+
 @app.get("/api/runs", response_model=list[PastRunSummary])
 async def list_past_runs() -> list[PastRunSummary]:
     """List historical inspection runs from out/ directory sorted newest first."""
@@ -121,7 +233,7 @@ async def list_past_runs() -> list[PastRunSummary]:
 
     runs: list[PastRunSummary] = []
     for run_dir in OUT_DIR.iterdir():
-        if not run_dir.is_dir() or not run_dir.name.startswith("run_"):
+        if not run_dir.is_dir() or not (run_dir.name.startswith("run_") or run_dir.name.startswith("single_")):
             continue
 
         report_file = run_dir / "report.json"
@@ -144,15 +256,22 @@ async def list_past_runs() -> list[PastRunSummary]:
                 except Exception:
                     pass
 
-            brand_input = report.get("inputs", {}).get("brand", {})
-            vendor_input = report.get("inputs", {}).get("vendor", {})
-            brand_pdf_path = brand_input.get("pdf_path", "")
-            vendor_pdf_path = vendor_input.get("pdf_path", "")
-            brand_filename = Path(brand_pdf_path).name if brand_pdf_path else None
-            vendor_filename = Path(vendor_pdf_path).name if vendor_pdf_path else None
+            run_type = report.get("run_type") or report.get("mode") or "compare"
+            if run_type == "single":
+                single_input = report.get("inputs", {}).get("single", {})
+                brand_filename = single_input.get("filename") or "Bản Soi Đơn"
+                vendor_filename = None
+            else:
+                brand_input = report.get("inputs", {}).get("brand", {})
+                vendor_input = report.get("inputs", {}).get("vendor", {})
+                brand_pdf_path = brand_input.get("pdf_path", "")
+                vendor_pdf_path = vendor_input.get("pdf_path", "")
+                brand_filename = Path(brand_pdf_path).name if brand_pdf_path else None
+                vendor_filename = Path(vendor_pdf_path).name if vendor_pdf_path else None
 
             has_images = (
-                (run_dir / "brand_cropped.png").is_file()
+                (run_dir / "single_cropped.png").is_file()
+                or (run_dir / "brand_cropped.png").is_file()
                 or (run_dir / "overlay.png").is_file()
             )
 
@@ -161,6 +280,7 @@ async def list_past_runs() -> list[PastRunSummary]:
                     run_id=run_dir.name,
                     timestamp_utc=report.get("timestamp_utc"),
                     status=report.get("status", "UNKNOWN"),
+                    run_type=run_type,
                     exit_code=report.get("exit_code"),
                     brand_filename=brand_filename,
                     vendor_filename=vendor_filename,
@@ -188,8 +308,12 @@ async def get_run_status(run_id: str) -> RunStatusResponse:
     images = RunImages()
 
     # Populate image URLs if the corresponding files exist on disk
-    if (run_dir / "brand_cropped.png").is_file():
+    if (run_dir / "single_cropped.png").is_file():
+        images.single_image = f"/api/runs/{run_id}/images/single_cropped.png"
+        images.brand_cropped = f"/api/runs/{run_id}/images/single_cropped.png"
+    elif (run_dir / "brand_cropped.png").is_file():
         images.brand_cropped = f"/api/runs/{run_id}/images/brand_cropped.png"
+
     if (run_dir / "vendor_cropped.png").is_file():
         images.vendor_cropped = f"/api/runs/{run_id}/images/vendor_cropped.png"
     elif (run_dir / "B_aligned.png").is_file():

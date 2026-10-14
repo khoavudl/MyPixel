@@ -11,6 +11,7 @@ import {
   RotateCw,
   Eye,
   ListFilter,
+  Home,
 } from 'lucide-react';
 import { useInspectionStore } from '../store/useInspectionStore';
 
@@ -40,7 +41,14 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     runId,
     resetAll,
     loupeScaleFactor,
+    inspectionType,
+    runStatus,
   } = useInspectionStore();
+
+  const isSingle =
+    inspectionType === 'single' ||
+    runStatus?.report?.mode === 'single' ||
+    runStatus?.report?.run_type === 'single';
 
   const zoomPercent = Math.round(viewport.zoom * 100);
 
@@ -54,22 +62,31 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
   return (
     <div className="h-14 bg-slate-900 border-b border-slate-800 px-4 flex items-center justify-between select-none z-30">
-      {/* Left: Branding & Back Button */}
+      {/* Left: Branding & Home Button */}
       <div className="flex items-center gap-3">
         <button
           onClick={resetAll}
-          title="Quay lại chọn cặp file mới"
-          className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors flex items-center gap-1.5 text-xs font-semibold"
+          title="Home"
+          className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors flex items-center gap-1.5 text-xs font-semibold cursor-pointer"
         >
-          <RotateCcw className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Kiểm Tra Mới</span>
+          <Home className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Home</span>
         </button>
 
         <div className="h-4 w-[1px] bg-slate-800 hidden sm:block" />
 
-        <div className="hidden sm:flex items-center gap-1.5 text-xs">
-          <span className="text-slate-500">Mã:</span>
+        <div className="hidden sm:flex items-center gap-2 text-xs">
+          <span className="text-slate-500">ID:</span>
           <span className="font-mono text-blue-400 font-semibold">{runId || '-'}</span>
+          {isSingle ? (
+            <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">
+              Single Mode
+            </span>
+          ) : (
+            <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-purple-500/20 text-purple-400 border border-purple-500/30">
+              Compare Mode
+            </span>
+          )}
         </div>
       </div>
 
@@ -78,7 +95,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         {/* Tool: Hand / Pan */}
         <button
           onClick={() => setActiveTool('pan')}
-          title="Công cụ Di chuyển (H / Giữ chuột)"
+          title="Pan tool (H / Click & drag)"
           className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
             activeTool === 'pan'
               ? 'bg-blue-600 text-white shadow-sm'
@@ -92,7 +109,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         {/* Tool: Draw Box */}
         <button
           onClick={() => setActiveTool(activeTool === 'box' ? 'pan' : 'box')}
-          title="Vẽ Bounding Box bắt lỗi đồng bộ 4 khung (B)"
+          title={isSingle ? "Draw defect box (B)" : "Draw defect box across viewports (B)"}
           className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
             activeTool === 'box'
               ? 'bg-amber-600 text-white shadow-sm ring-1 ring-amber-400'
@@ -100,13 +117,13 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           }`}
         >
           <Square className="w-3.5 h-3.5" />
-          <span className="hidden md:inline">Vẽ Box (B)</span>
+          <span className="hidden md:inline">Draw Box (B)</span>
         </button>
 
         {/* Tool: Loupe Magnifier */}
         <button
           onClick={() => setActiveTool(activeTool === 'loupe' ? 'pan' : 'loupe')}
-          title={`Kính lúp soi nét tương đối (L) • Độ phóng ${loupeScaleFactor.toFixed(1)}x (Shift + Lăn chuột hoặc phím [ / ])`}
+          title={`Magnifier loupe (L) • Zoom ${loupeScaleFactor.toFixed(1)}x (Shift + Scroll or [ / ])`}
           className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
             activeTool === 'loupe'
               ? 'bg-cyan-600 text-white shadow-sm ring-1 ring-cyan-400'
@@ -115,39 +132,41 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         >
           <Search className="w-3.5 h-3.5" />
           <span className="hidden md:inline">
-            {activeTool === 'loupe' ? `Kính Lúp (${loupeScaleFactor.toFixed(1)}x)` : 'Kính Lúp (L)'}
+            {activeTool === 'loupe' ? `Loupe (${loupeScaleFactor.toFixed(1)}x)` : 'Loupe (L)'}
           </span>
         </button>
 
-        {/* Tool: Flicker / Blink Compare */}
-        <button
-          onClick={() => {
-            if (isFlickering) {
-              setIsFlickering(false);
-            } else {
-              setIsFlickering(true);
-              toggleFlickerTarget();
-            }
-          }}
-          title="Chớp tắt đối chiếu Brand & Vendor (Bấm giữ phím Space)"
-          className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
-            isFlickering
-              ? 'bg-amber-500 text-slate-950 font-bold animate-pulse'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-          }`}
-        >
-          <Eye className="w-3.5 h-3.5" />
-          <span className="hidden md:inline">
-            {isFlickering ? `Flicker: ${flickerTarget.toUpperCase()}` : 'Flicker (Space)'}
-          </span>
-        </button>
+        {/* Tool: Flicker / Blink Compare (Only when comparing 2 files) */}
+        {!isSingle && (
+          <button
+            onClick={() => {
+              if (isFlickering) {
+                setIsFlickering(false);
+              } else {
+                setIsFlickering(true);
+                toggleFlickerTarget();
+              }
+            }}
+            title="Blink comparison (Hold Space)"
+            className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
+              isFlickering
+                ? 'bg-amber-500 text-slate-950 font-bold animate-pulse'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+            }`}
+          >
+            <Eye className="w-3.5 h-3.5" />
+            <span className="hidden md:inline">
+              {isFlickering ? `Flicker: ${flickerTarget.toUpperCase()}` : 'Flicker (Space)'}
+            </span>
+          </button>
+        )}
 
         <div className="h-4 w-[1px] bg-slate-800 mx-1" />
 
         {/* Zoom Out */}
         <button
           onClick={handleZoomOut}
-          title="Thu nhỏ (-)"
+          title="Zoom out (-)"
           className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
         >
           <ZoomOut className="w-4 h-4" />
@@ -161,7 +180,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         {/* Zoom In */}
         <button
           onClick={handleZoomIn}
-          title="Phóng to (+)"
+          title="Zoom in (+)"
           className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
         >
           <ZoomIn className="w-4 h-4" />
@@ -172,7 +191,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         {/* Fit to Screen */}
         <button
           onClick={onFitToScreen}
-          title="Vừa vặn màn hình (0)"
+          title="Fit to screen (0)"
           className="px-2 py-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg text-xs font-medium flex items-center gap-1 transition-colors"
         >
           <Maximize2 className="w-3.5 h-3.5" />
@@ -182,7 +201,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         {/* 100% Actual Size */}
         <button
           onClick={onActualSize}
-          title="Kích thước thực 100% (1)"
+          title="Actual size 100% (1)"
           className="px-2 py-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg text-xs font-medium flex items-center gap-1 transition-colors"
         >
           <Minimize2 className="w-3.5 h-3.5" />
@@ -194,7 +213,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         {/* Rotate CCW */}
         <button
           onClick={rotateCounterClockwise}
-          title="Xoay ngược chiều kim đồng hồ 90° (Shift + R)"
+          title="Rotate counter-clockwise 90° (Shift + R)"
           className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
         >
           <RotateCcw className="w-4 h-4" />
@@ -202,7 +221,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
         {/* Rotation indicator badge */}
         <span
-          title="Góc xoay hiện tại"
+          title="Current rotation angle"
           className={`text-xs font-mono font-bold min-w-[38px] text-center px-1 py-0.5 rounded ${
             viewport.rotation !== 0
               ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40'
@@ -215,7 +234,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         {/* Rotate CW */}
         <button
           onClick={rotateClockwise}
-          title="Xoay theo chiều kim đồng hồ 90° (Phím R)"
+          title="Rotate clockwise 90° (R)"
           className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
         >
           <RotateCw className="w-4 h-4" />
@@ -227,7 +246,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         {/* Defect List Sidebar Toggle */}
         <button
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          title="Bật/Tắt danh sách lỗi (Punch List)"
+          title="Defect List"
           className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-colors border cursor-pointer ${
             isSidebarOpen
               ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
@@ -235,7 +254,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           }`}
         >
           <ListFilter className="w-3.5 h-3.5" />
-          <span>Danh Sách Lỗi</span>
+          <span>Defects</span>
           {annotations.length > 0 && (
             <span className="px-1.5 py-0.2 text-[10px] rounded-full bg-amber-500 text-slate-950 font-bold">
               {annotations.length}

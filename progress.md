@@ -1,7 +1,7 @@
 # TIẾN ĐỘ DỰ ÁN (PROJECT PROGRESS) – MYPIXEL (ARTDIFF)
 > **Cập nhật lần cuối:** 2026-10-14  
-> **Trạng thái hiện tại:** Đã hoàn thành Milestone 2A.1, 2A.2, 2A.3, 2A.4, Xoay Trực Giao 4 Hướng (0°/90°/180°/270°), Tối ưu Badge & Stroke Bất Biến Màn Hình (Screen-Space Invariant Sizing), Tối ưu hiệu năng ảnh chỉ báo (2048px) & Tính năng Nạp Phiên Cũ (Load Past Run). Sẵn sàng cho Milestone 2A.5 (1-Click Export Report).  
-> **Tổng số bài test tự động:** 36/36 PASS (100%)
+> **Trạng thái hiện tại:** Đã hoàn thành Milestone 2A.1, 2A.2, 2A.3, 2A.4, Xoay Trực Giao 4 Hướng (0°/90°/180°/270°), Tối ưu Badge & Stroke Bất Biến Màn Hình, Cấu trúc 3 Chức Năng Mainscreen (F1: Load Past Run, F2: Compare 2 Files, F3: Single-file Inspection), Trạm Soi 1 Khung Hình Duy Nhất (Single View Inspection Workspace), Chuẩn Hoá Giao Diện (Logo FES nền trong suốt, Tên tiếng Anh Packaging QA Studio, Thứ tự 3 Tab Chức Năng, Chuyển ngữ 100% tiếng Anh cho toàn bộ UI), và Tinh gọn thẻ khung hình (chỉ giữ nhãn OLD / NEW / OVERLAY / HEATMAP / SINGLE, bỏ chữ nhỏ phụ trợ, bỏ dòng mô tả phụ đề ở màn hình chính). Sẵn sàng cho tính năng xuất báo cáo mở rộng (F2 & F3).  
+> **Tổng số bài test tự động:** 37/37 PASS (100%)
 
 ---
 
@@ -10,13 +10,16 @@
 | Milestone | Mô tả | Trạng thái | Ghi chú & DoD |
 |---|---|:---:|---|
 | **Phase 1** | Thuật toán nền tảng: Bóc tách vector, Size Gate, Canh khít sub-pixel (<0.5 px) không dùng die-line, Fit Meter | **HOÀN TẤT** | 24/24 tests PASS. Kiểm chứng trên 2 bộ file thật (`brand.pdf` vs `vendor.pdf` và `v1.pdf` vs `v2.pdf`). Báo cáo tại [`PHASE1_FINDINGS.md`](file:///Users/tindn/Downloads/MyPixel-v1/PHASE1_FINDINGS.md). |
-| **Milestone 2A.1** | **Backend API & WebSocket Runner** (`server/`): REST endpoints, background runner bọc Phase 1, phát log WebSocket, serve static images, lưu annotations, xuất báo cáo | **HOÀN TẤT** | Đã test trọn luồng bằng `TestClient` trong [`tests/test_server.py`](file:///Users/tindn/Downloads/MyPixel-v1/tests/test_server.py). 4/4 server tests PASS. |
+| **Milestone 2A.1** | **Backend API & WebSocket Runner** (`server/`): REST endpoints, background runner bọc Phase 1, phát log WebSocket, serve static images, lưu annotations, xuất báo cáo | **HOÀN TẤT** | Đã test trọn luồng bằng `TestClient` trong [`tests/test_server.py`](file:///Users/tindn/Downloads/MyPixel-v1/tests/test_server.py). 6/6 server tests PASS. |
 | **Milestone 2A.2** | **UI Dropzone & Real-time Console** (`ui/`): Kéo thả 2 file PDF, cấu hình kích thước WxH mm và số trang, bấm Analyze, hiển thị log WebSocket nhảy từng dòng theo thời gian thực, tự động chuyển view | **HOÀN TẤT** | `npm run build` thành công (1.17s). Đã tích hợp serve trực tiếp qua `http://localhost:8000`. |
 | **Milestone 2A.3** | **4-Way Synced Viewport Canvas**: 2 khung lớn bên trái (Brand, Vendor); 2 khung nhỏ bên phải (Overlay, Heatmap). Đồng bộ Pan & Zoom 60 FPS qua CSS GPU transform + Phím tắt Space chớp tắt (Flicker Compare) | **HOÀN TẤT** | Đã hoàn thành `ViewportGrid.tsx`, `CanvasViewer.tsx`, `Toolbar.tsx`, `useSyncedViewport.ts`, `useHotkeys.ts`. Build sạch (1.23s). |
 | **Milestone 2A.4** | **Kính lúp (Loupe 4x-8x) & Cross-Canvas Annotations**: Rê chuột soi nét sub-pixel đồng thời cả 4 khung; vẽ box ở bất kỳ khung nào thì tự động hiện ở cả 4 khung; toggle phím tắt B/L quay về Pan; thu gọn sidebar lỗi còn 70% (w-56); cân bằng 50/50 khung chính và khung chẩn đoán | **HOÀN TẤT** | Đã hoàn thiện `LoupeMagnifier.tsx` (4-way synced), `SvgAnnotationLayer.tsx`, `AnnotationModal.tsx`, `DefectSidebar.tsx` (w-56), `ViewportGrid.tsx` (50/50 split). Build sạch (1.42s). |
 | **Milestone 2A.4+** | **4-Way Orthogonal Rotation (0°/90°/180°/270°) & Screen-Invariant Badges**: Xoay đồng bộ 4 khung hình đọc nắp hộp/chữ ngược; vẽ box ở mọi góc xoay tự động quy về toạ độ gốc; nhãn `#1, #2` tự động bù zoom và counter-rotate luôn nằm ngang rõ nét ở mọi tỷ lệ | **HOÀN TẤT** | Đã hoàn thành `coordinateTransform.ts`, `CanvasViewer.tsx`, `SvgAnnotationLayer.tsx`, `LoupeMagnifier.tsx`, `Toolbar.tsx`, `useHotkeys.ts` (Phím `R` / `Shift+R`). Build sạch (1.39s). |
-| **Milestone 2A.5** | **1-Click Export Report**: Xuất biên bản kiểm tra (HTML / PDF / JSON) có ảnh cắt cận cảnh từng box và bảng ghi chú chi tiết | *CHỜ DUYỆT* | Kế hoạch tiếp theo. |
+| **Milestone 2A.4++** | **Mainscreen 3 Chức Năng & Trạm Soi 1 Bản Đơn (Single View Inspection)**: Phân tách rõ 3 chức năng F1 (Past Runs), F2 (Compare 2 bản), F3 (Soi 1 file độc lập). Trạm Workspace ở F3 tối ưu hiển thị **1 khung hình duy nhất** siêu rộng, giữ nguyên 100% tính năng Pan, Zoom, Xoay 4 hướng, Vẽ Box, Kính Lúp, Danh Sách Lỗi | **HOÀN TẤT** | Đã bổ sung endpoint `POST /api/inspect_single`, phân nhánh ViewportGrid 1 khung, tính toán Fit Screen theo khung đơn, cập nhật Store & Dropzone. Build sạch (1.33s), 37/37 tests PASS. |
+| **Milestone 2A.4+++** | **Chuẩn Hoá Giao Diện & Tiếng Anh Toàn Diện (UI Polish & Cleanup)**: Đổi Logo FES nền trong suốt góc phải navbar; đổi tên `Packaging QA Studio`; thứ tự 3 Tab chuẩn (`1. Compare Mode`, `2. Single Mode`, `3. Historical Run`); đổi nút `Home` kèm icon; chuyển `Old Version` / `New Version` / `Overlay` / `Heatmap`; nút `Start`; chuyển ngữ 100% tiếng Anh; tinh gọn thẻ khung (chỉ giữ `OLD`, `NEW`, `OVERLAY`, `HEATMAP`, `SINGLE`, bỏ toàn bộ chữ nhỏ phụ); bỏ dòng mô tả dài ở màn hình chính | **HOÀN TẤT** | Build sạch (1.38s), 37/37 tests PASS. |
+| **Milestone 2A.5** | **1-Click Export Report (F2 & F3)**: Xuất biên bản kiểm tra (HTML / PDF / JSON) tối ưu cho cả chế độ So 2 bản và Soi 1 bản đơn có ảnh cắt cận cảnh từng box và bảng ghi chú chi tiết | *CHỜ DUYỆT* | Kế hoạch tiếp theo. |
 | **Phase 2B** | **Tích hợp Gợi ý Khác biệt Tự động (Assisted Auto-diff)**: Tự động vẽ sẵn các box nghi vấn lên UI cho người dùng duyệt | *TƯƠNG LAI* | Sau khi hoàn thiện UI Phase 2A. |
+
 
 ---
 
@@ -68,6 +71,20 @@
 * [`ui/src/components/Workspace.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/Workspace.tsx): Nút Fit screen (phím `0`) tự động tính toán lại kích thước hiển thị theo góc xoay ($W \leftrightarrow H$).
 
 
+### 2.5. Cấu Trúc Mainscreen 3 Chức Năng & Trạm Soi 1 Khung Hình Độc Lập (Milestone 2A.4++)
+* [`server/app.py`](file:///Users/tindn/Downloads/MyPixel-v1/server/app.py): Thêm endpoint `POST /api/inspect_single` bóc tách hoặc render file đơn độc lập (PDF / ảnh PNG/JPG) ở 300 DPI, hỗ trợ tự động bóc tách Artboard hoặc xuất toàn trang, trả về kết quả trong <0.4s. Bổ sung `run_type: "single" | "compare"` trong `list_past_runs` và `get_run_status`.
+* [`server/schemas.py`](file:///Users/tindn/Downloads/MyPixel-v1/server/schemas.py): Thêm `single_image` vào `RunImages`, thêm `run_type` vào `PastRunSummary`.
+* [`ui/src/components/Dropzone.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/Dropzone.tsx): Tái thiết kế màn hình chính thành 3 tab chức năng rõ rệt:
+  - **Chức năng 1 (F1): Lịch Sử (Past Runs)**: Tích hợp trực tiếp danh sách các lần chạy cũ trên màn hình chính, bộ lọc (Tất cả / So 2 bản / Soi 1 bản), ô tìm kiếm, nạp lại phiên làm việc trong 0.1s.
+  - **Chức năng 2 (F2): So Sánh 2 Bản (Compare)**: Kéo thả 2 file PDF Brand & Vendor, cấu hình kích thước WxH mm, số trang, bấm bắt đầu kiểm định -> stream log thời gian thực -> Workspace 4 khung hình.
+  - **Chức năng 3 (F3): Soi 1 Bản Đơn (Single View)**: Kéo thả 1 file duy nhất (PDF/ảnh), chọn trang, chế độ bóc tách Artboard (Auto-crop) hoặc Toàn trang (Full Page), bấm "Vào Trạm Soi" -> chuyển thẳng vào Workspace 1 khung hình.
+* [`ui/src/components/ViewportGrid.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/ViewportGrid.tsx): Tự động nhận diện chế độ kiểm tra: Nếu là Function 3 (Single View) thì chuyển sang hiển thị **1 khung hình duy nhất** chiếm toàn bộ không gian trạm làm việc, cho tầm nhìn tối đa và độ nét hoàn hảo.
+* [`ui/src/components/Toolbar.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/Toolbar.tsx): Hiển thị pill trạng thái "Soi 1 Bản" / "So 2 Bản", tự động ẩn công cụ Flicker khi ở chế độ 1 file, giữ nguyên 100% các công cụ: Pan (H), Draw Box (B), Kính lúp (L), Zoom in/out, Fit Screen (0), 100% (1), Xoay trực giao 4 hướng (R / Shift+R).
+* [`ui/src/components/Workspace.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/Workspace.tsx): Hàm `handleFitToScreen` (phím `0`) tự động tính toán tỷ lệ zoom theo kích thước container toàn màn hình của khung đơn.
+* [`ui/src/store/useInspectionStore.ts`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/store/useInspectionStore.ts): Bổ sung `inspectionType: 'compare' | 'single'`, `activeMainTab`, `singleFile`, `singlePage`, `singleTargetSizeMm`, `singleCropMode`. Cập nhật `jumpToBox` tự động căn tâm giữa màn hình đơn.
+* [`tests/test_server.py`](file:///Users/tindn/Downloads/MyPixel-v1/tests/test_server.py): Thêm bài test `test_inspect_single_artwork_pdf` kiểm tra trọn luồng từ tải file đơn, lấy ảnh kết quả, tạo và lấy annotation, đến liệt kê lịch sử past runs.
+
+
 ---
 
 ## 3. Nhật Ký Kiểm Thử (Verification Log)
@@ -78,14 +95,15 @@
 
 # Kết quả:
 tests/test_aligner.py ..                                                 [  5%]
-tests/test_cropper.py ...                                                [ 13%]
-tests/test_eval.py ........                                              [ 35%]
-tests/test_fit_meter.py ...                                              [ 43%]
-tests/test_frame_detector.py ..s                                         [ 51%]
-tests/test_pdf_renderer.py ..s                                           [ 59%]
-tests/test_pipeline_phase1.py ..                                         [ 64%]
-tests/test_server.py .....                                               [ 76%]
-tests/test_size_gate.py ....                                             [ 86%]
+tests/test_cropper.py ...                                                [ 12%]
+tests/test_eval.py ........                                              [ 33%]
+tests/test_fit_meter.py ...                                              [ 41%]
+tests/test_frame_detector.py ..s                                         [ 48%]
+tests/test_pdf_renderer.py ..s                                           [ 56%]
+tests/test_pipeline_phase1.py ..                                         [ 61%]
+tests/test_server.py ......                                              [ 76%]
+tests/test_size_gate.py ....                                             [ 87%]
 tests/test_units.py .....                                                [100%]
-================== 36 passed, 2 skipped, 6 warnings in 2.74s ===================
+================== 37 passed, 2 skipped, 6 warnings in 2.41s ===================
 ```
+

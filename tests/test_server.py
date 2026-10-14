@@ -155,3 +155,67 @@ def test_list_past_runs(client):
         assert "has_images" in first
         assert "annotations_count" in first
 
+
+def test_inspect_single_artwork_pdf(client, sample_pdfs):
+    brand_pdf, _ = sample_pdfs
+
+    with open(brand_pdf, "rb") as f:
+        res = client.post(
+            "/api/inspect_single",
+            data={"target_size_mm": "100x80", "page": "1", "crop_mode": "auto"},
+            files={"file": ("single_brand.pdf", f, "application/pdf")},
+        )
+    assert res.status_code == 200
+    data = res.json()
+    run_id = data["run_id"]
+    assert run_id.startswith("single_")
+    assert data["status"] == "PASS"
+    assert data["images"]["single_image"] is not None
+    assert data["report"]["run_type"] == "single"
+
+    # Fetch status
+    status_res = client.get(f"/api/runs/{run_id}")
+    assert status_res.status_code == 200
+    status_data = status_res.json()
+    assert status_data["images"]["single_image"] == data["images"]["single_image"]
+
+    # Fetch image
+    img_res = client.get(data["images"]["single_image"])
+    assert img_res.status_code == 200
+    assert img_res.headers["content-type"] in ("image/png", "application/octet-stream")
+
+    # Annotations on single run
+    ann_res = client.post(
+        f"/api/runs/{run_id}/annotations",
+        json={
+            "run_id": run_id,
+            "annotations": [
+                {
+                    "id": "single-box-1",
+                    "norm_x": 0.2,
+                    "norm_y": 0.3,
+                    "norm_w": 0.1,
+                    "norm_h": 0.1,
+                    "tag": "content",
+                    "severity": "major",
+                    "note": "Kiểm tra màu logo",
+                }
+            ],
+        },
+    )
+    assert ann_res.status_code == 200
+
+    get_ann = client.get(f"/api/runs/{run_id}/annotations")
+    assert get_ann.status_code == 200
+    assert len(get_ann.json()) == 1
+    assert get_ann.json()[0]["id"] == "single-box-1"
+
+    # List past runs contains single run
+    past_runs = client.get("/api/runs").json()
+    matched = [r for r in past_runs if r["run_id"] == run_id]
+    assert len(matched) == 1
+    assert matched[0]["run_type"] == "single"
+    assert matched[0]["brand_filename"] == "single_brand.pdf"
+    assert matched[0]["annotations_count"] == 1
+
+

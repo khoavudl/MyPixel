@@ -29,6 +29,7 @@ class RunImages(BaseModel):
     grid_vectors: str | None = None
     frame_brand: str | None = None
     frame_vendor: str | None = None
+    single_image: str | None = None
 
 
 class RunStatusResponse(BaseModel):
@@ -67,6 +68,7 @@ class PastRunSummary(BaseModel):
     run_id: str
     timestamp_utc: str | None = None
     status: str = "UNKNOWN"
+    run_type: str = "compare"
     exit_code: int | None = None
     brand_filename: str | None = None
     vendor_filename: str | None = None

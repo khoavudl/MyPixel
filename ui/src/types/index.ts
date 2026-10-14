@@ -18,12 +18,15 @@ export interface RunImages {
   grid_vectors?: string | null;
   frame_brand?: string | null;
   frame_vendor?: string | null;
+  single_image?: string | null;
 }
+
 
 export interface RunReport {
   run_id: string;
   timestamp_utc: string;
   mode: string;
+  run_type?: string | null;
   target_size_mm: [number, number];
   status: string;
   exit_code: number;
@@ -31,6 +34,7 @@ export interface RunReport {
   tasks?: Record<string, unknown>;
   inputs?: Record<string, unknown>;
 }
+
 
 export interface RunStatusResponse {
   run_id: string;
@@ -71,6 +75,7 @@ export interface PastRunSummary {
   run_id: string;
   timestamp_utc?: string | null;
   status: string;
+  run_type?: string | null;
   exit_code?: number | null;
   brand_filename?: string | null;
   vendor_filename?: string | null;
@@ -78,4 +83,8 @@ export interface PastRunSummary {
   annotations_count: number;
   has_images: boolean;
 }
+
+export type InspectionType = 'compare' | 'single';
+export type MainFunctionTab = 'history' | 'compare' | 'single';
+
 

@@ -74,7 +74,7 @@ export const AnnotationModal: React.FC = () => {
             <span className="w-6 h-6 rounded-lg bg-blue-600 flex items-center justify-center text-xs font-bold text-white">
               #
             </span>
-            <h3 className="font-bold text-white text-sm">Ghi Chú</h3>
+            <h3 className="font-bold text-white text-sm">Defect Note</h3>
           </div>
           <button
             onClick={() => setActiveEditingBox(null)}
@@ -89,8 +89,8 @@ export const AnnotationModal: React.FC = () => {
           {/* Coordinates Info */}
           {bbox && (
             <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 font-mono text-xs flex justify-between text-slate-300">
-              <span>Vị trí: ({bbox[0].toFixed(1)}, {bbox[1].toFixed(1)}) mm</span>
-              <span>Kích thước: {bbox[2].toFixed(1)} × {bbox[3].toFixed(1)} mm</span>
+              <span>Position: ({bbox[0].toFixed(1)}, {bbox[1].toFixed(1)}) mm</span>
+              <span>Size: {bbox[2].toFixed(1)} × {bbox[3].toFixed(1)} mm</span>
             </div>
           )}
 
@@ -98,12 +98,12 @@ export const AnnotationModal: React.FC = () => {
           <div>
             <label className="text-xs font-medium text-slate-400 mb-2 flex items-center gap-1.5">
               <FileText className="w-3.5 h-3.5 text-blue-400" />
-              <span>Ghi Chú Chi Tiết:</span>
+              <span>Detailed Note:</span>
             </label>
             <textarea
               rows={4}
               autoFocus
-              placeholder="Nhập nội dung ghi chú cho vị trí này..."
+              placeholder="Enter defect description or instructions for vendor..."
               value={note}
               onChange={(e) => setNote(e.target.value)}
               className="w-full px-3 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 leading-relaxed resize-none"
@@ -118,7 +118,7 @@ export const AnnotationModal: React.FC = () => {
             className="px-3 py-2 text-xs font-semibold text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
           >
             <Trash2 className="w-3.5 h-3.5" />
-            <span>Xoá Box</span>
+            <span>Delete Box</span>
           </button>
 
           <div className="flex items-center gap-2">
@@ -126,14 +126,14 @@ export const AnnotationModal: React.FC = () => {
               onClick={() => setActiveEditingBox(null)}
               className="px-3 py-2 text-xs font-semibold text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-xl transition-colors cursor-pointer"
             >
-              Hủy
+              Cancel
             </button>
             <button
               onClick={handleSave}
               className="px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-500 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer shadow-lg shadow-blue-600/30"
             >
               <Check className="w-3.5 h-3.5" />
-              <span>Lưu</span>
+              <span>Save</span>
             </button>
           </div>
         </div>

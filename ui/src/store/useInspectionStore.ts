@@ -2,7 +2,9 @@ import { create } from 'zustand';
 import {
   ActiveTool,
   DefectBox,
+  InspectionType,
   LogMessage,
+  MainFunctionTab,
   RotationAngle,
   RunStatusResponse,
   ViewportTransform,
@@ -12,12 +14,22 @@ import { canonicalToScreen, getDisplayedDimensions } from '../utils/coordinateTr
 export type AppViewMode = 'setup' | 'console' | 'workspace';
 
 interface InspectionState {
-  // Setup inputs
+  // Navigation / Main screen functions
+  activeMainTab: MainFunctionTab;
+  inspectionType: InspectionType;
+
+  // Function 2: Setup inputs (Compare)
   brandFile: File | null;
   vendorFile: File | null;
   targetSizeMm: string;
   brandPage: number;
   vendorPage: number;
+
+  // Function 3: Setup inputs (Single Inspection)
+  singleFile: File | null;
+  singlePage: number;
+  singleTargetSizeMm: string;
+  singleCropMode: 'auto' | 'full';
 
   // Run execution
   runId: string | null;
@@ -44,11 +56,17 @@ interface InspectionState {
   naturalImageSize: { w: number; h: number } | null;
 
   // Actions
+  setActiveMainTab: (tab: MainFunctionTab) => void;
+  setInspectionType: (type: InspectionType) => void;
   setBrandFile: (file: File | null) => void;
   setVendorFile: (file: File | null) => void;
   setTargetSizeMm: (size: string) => void;
   setBrandPage: (page: number) => void;
   setVendorPage: (page: number) => void;
+  setSingleFile: (file: File | null) => void;
+  setSinglePage: (page: number) => void;
+  setSingleTargetSizeMm: (size: string) => void;
+  setSingleCropMode: (mode: 'auto' | 'full') => void;
   setRunId: (id: string | null) => void;
   setIsAnalyzing: (analyzing: boolean) => void;
   addLog: (log: LogMessage) => void;
@@ -87,11 +105,19 @@ const defaultViewport: ViewportTransform = {
 };
 
 export const useInspectionStore = create<InspectionState>((set) => ({
+  activeMainTab: 'compare',
+  inspectionType: 'compare',
+
   brandFile: null,
   vendorFile: null,
   targetSizeMm: '620x250',
   brandPage: 1,
   vendorPage: 1,
+
+  singleFile: null,
+  singlePage: 1,
+  singleTargetSizeMm: '620x250',
+  singleCropMode: 'auto',
 
   runId: null,
   isAnalyzing: false,
@@ -114,11 +140,17 @@ export const useInspectionStore = create<InspectionState>((set) => ({
   isSidebarOpen: true,
   naturalImageSize: null,
 
+  setActiveMainTab: (tab) => set({ activeMainTab: tab }),
+  setInspectionType: (type) => set({ inspectionType: type }),
   setBrandFile: (file) => set({ brandFile: file }),
   setVendorFile: (file) => set({ vendorFile: file }),
   setTargetSizeMm: (size) => set({ targetSizeMm: size }),
   setBrandPage: (page) => set({ brandPage: page }),
   setVendorPage: (page) => set({ vendorPage: page }),
+  setSingleFile: (file) => set({ singleFile: file }),
+  setSinglePage: (page) => set({ singlePage: page }),
+  setSingleTargetSizeMm: (size) => set({ singleTargetSizeMm: size }),
+  setSingleCropMode: (mode) => set({ singleCropMode: mode }),
   setRunId: (id) => set({ runId: id }),
   setIsAnalyzing: (analyzing) => set({ isAnalyzing: analyzing }),
   addLog: (log) => set((state) => ({ logs: [...state.logs, log] })),
@@ -203,8 +235,17 @@ export const useInspectionStore = create<InspectionState>((set) => ({
       const boxCenterX = uPrime * displayedW;
       const boxCenterY = vPrime * displayedH;
 
-      const containerW = window.innerWidth * 0.45;
-      const containerH = (window.innerHeight - 80) * 0.45;
+      const isSingle =
+        state.inspectionType === 'single' ||
+        state.runStatus?.report?.mode === 'single' ||
+        state.runStatus?.report?.run_type === 'single';
+
+      const containerW = isSingle
+        ? (window.innerWidth - (state.isSidebarOpen ? 224 : 0) - 40)
+        : window.innerWidth * 0.45;
+      const containerH = isSingle
+        ? (window.innerHeight - 80)
+        : (window.innerHeight - 80) * 0.45;
 
       const boxDisplayW =
         rot === 90 || rot === 270 ? box.norm_h * imgH : box.norm_w * imgW;
@@ -224,6 +265,11 @@ export const useInspectionStore = create<InspectionState>((set) => ({
     set({
       brandFile: null,
       vendorFile: null,
+      singleFile: null,
+      singlePage: 1,
+      singleTargetSizeMm: '620x250',
+      singleCropMode: 'auto',
+      inspectionType: 'compare',
       runId: null,
       isAnalyzing: false,
       logs: [],

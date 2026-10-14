@@ -7,7 +7,7 @@ import { LoupeMagnifier } from './LoupeMagnifier';
 import { getDisplayedDimensions } from '../utils/coordinateTransform';
 
 interface CanvasViewerProps {
-  title: string;
+  title?: string;
   badgeText: string;
   badgeColorClass: string;
   imageUrl?: string | null;
@@ -93,9 +93,11 @@ export const CanvasViewer: React.FC<CanvasViewerProps> = ({
         >
           {badgeText}
         </span>
-        <span className="text-xs font-semibold text-slate-200 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
-          {title}
-        </span>
+        {title && (
+          <span className="text-xs font-semibold text-slate-200 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+            {title}
+          </span>
+        )}
 
         {rot !== 0 && (
           <span className="px-2 py-0.5 rounded bg-blue-500/20 border border-blue-400/40 text-blue-300 text-[10px] font-bold uppercase flex items-center gap-1 shadow">
@@ -127,7 +129,7 @@ export const CanvasViewer: React.FC<CanvasViewerProps> = ({
         <div className="absolute inset-0 flex items-center justify-center bg-slate-950/80 z-10 pointer-events-none">
           <div className="flex flex-col items-center gap-2 text-slate-400">
             <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
-            <span className="text-xs font-medium">Đang tải ảnh...</span>
+            <span className="text-xs font-medium">Loading image...</span>
           </div>
         </div>
       )}
@@ -195,7 +197,7 @@ export const CanvasViewer: React.FC<CanvasViewerProps> = ({
           </div>
         ) : (
           <div className="w-[800px] h-[600px] flex items-center justify-center text-slate-600 text-sm">
-            Chưa có ảnh kết quả
+            No image available
           </div>
         )}
       </div>

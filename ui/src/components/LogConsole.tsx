@@ -12,11 +12,11 @@ import { LogMessage } from '../types';
 
 const PIPELINE_TASKS = [
   { id: 'task1_render', label: '1. Render PDF' },
-  { id: 'task2_frame_detect', label: '2. Dò khung Vector' },
-  { id: 'task3_crop', label: '3. Cắt Artboard' },
-  { id: 'task4_size_gate', label: '4. Kiểm tra khổ' },
-  { id: 'task5_align', label: '5. Canh khít sub-pixel' },
-  { id: 'task6_fit_meter', label: '6. Đo độ khít' },
+  { id: 'task2_frame_detect', label: '2. Vector Frame Detection' },
+  { id: 'task3_crop', label: '3. Artboard Crop' },
+  { id: 'task4_size_gate', label: '4. Size & Ratio Gate' },
+  { id: 'task5_align', label: '5. Sub-pixel Alignment' },
+  { id: 'task6_fit_meter', label: '6. Fit Meter & Heatmap' },
 ];
 
 export const LogConsole: React.FC = () => {
@@ -125,16 +125,16 @@ export const LogConsole: React.FC = () => {
         <div className="flex items-center justify-between mb-4">
           <div>
             <span className="text-xs font-semibold text-blue-400 uppercase tracking-wider">
-              Tiến Trình Kiểm Định Phase 1
+              Phase 1 Pipeline Progress
             </span>
             <h2 className="text-xl font-bold text-white mt-0.5">
-              Mã phân tích: <span className="font-mono text-blue-300">{runId || '...'}</span>
+              Run ID: <span className="font-mono text-blue-300">{runId || '...'}</span>
             </h2>
           </div>
           <div className="text-right">
             <span className="text-2xl font-black text-blue-400">{progressPercentage}%</span>
             <div className="text-xs text-slate-400">
-              {completedTasks.size} / {PIPELINE_TASKS.length} tasks hoàn tất
+              {completedTasks.size} / {PIPELINE_TASKS.length} tasks completed
             </div>
           </div>
         </div>
@@ -195,15 +195,15 @@ export const LogConsole: React.FC = () => {
           <div className="flex items-center gap-2 text-xs">
             {isDone ? (
               <span className="text-emerald-400 font-semibold flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5" /> HOÀN TẤT
+                <CheckCircle2 className="w-3.5 h-3.5" /> COMPLETED
               </span>
             ) : isFailed ? (
               <span className="text-red-400 font-semibold flex items-center gap-1">
-                <AlertCircle className="w-3.5 h-3.5" /> GẶP LỖI
+                <AlertCircle className="w-3.5 h-3.5" /> FAILED
               </span>
             ) : (
               <span className="text-blue-400 font-semibold flex items-center gap-1">
-                <Loader2 className="w-3.5 h-3.5 animate-spin" /> ĐANG XỬ LÝ...
+                <Loader2 className="w-3.5 h-3.5 animate-spin" /> PROCESSING...
               </span>
             )}
           </div>
@@ -217,7 +217,7 @@ export const LogConsole: React.FC = () => {
           {logs.length === 0 ? (
             <div className="text-slate-600 flex items-center gap-2">
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              <span>Đang kết nối WebSocket và khởi động pipeline...</span>
+              <span>Connecting to WebSocket and starting pipeline...</span>
             </div>
           ) : (
             logs.map((log, idx) => {
@@ -253,10 +253,10 @@ export const LogConsole: React.FC = () => {
           <div className="bg-red-950/40 border-t border-red-500/30 px-6 py-3.5 flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
             <div className="text-xs text-red-200 leading-relaxed">
-              <div className="font-bold text-red-300 mb-0.5">Tiến trình kiểm định dừng lại do không khớp khổ thiết kế</div>
+              <div className="font-bold text-red-300 mb-0.5">Pipeline halted: Target trim size mismatch</div>
               <span>
-                Hệ thống không tìm thấy khung kích thước trong file PDF này.
-                Nếu anh đang kiểm tra bộ file <b>v1.pdf / v2.pdf (Kracks)</b>, vui lòng bấm <b>"Quay lại Cài đặt"</b> bên dưới và chọn nút khổ <b>217 × 200.5 (Kracks)</b>.
+                Target trim frame not found in PDF.
+                If inspecting Kracks files (<b>v1.pdf / v2.pdf</b>), click <b>"Back to Setup"</b> below and select the <b>217 × 200.5 (Kracks)</b> preset.
               </span>
             </div>
           </div>
@@ -269,7 +269,7 @@ export const LogConsole: React.FC = () => {
             className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            <span>Quay lại Cài đặt</span>
+            <span>Back to Setup</span>
           </button>
 
           {isDone && (
@@ -277,7 +277,7 @@ export const LogConsole: React.FC = () => {
               onClick={() => setViewMode('workspace')}
               className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-emerald-600/30 flex items-center gap-2 cursor-pointer transition-transform hover:scale-105"
             >
-              <span>Vào Trạm Kiểm Định</span>
+              <span>Enter Workspace</span>
               {autoRedirectTimer !== null && autoRedirectTimer > 0 && (
                 <span className="bg-emerald-700 px-1.5 py-0.5 rounded text-[10px]">
                   {autoRedirectTimer}s

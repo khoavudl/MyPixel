@@ -5,6 +5,8 @@ import { LogConsole } from './components/LogConsole';
 import { Workspace } from './components/Workspace';
 import { ScanSearch } from 'lucide-react';
 
+import fesLogo from './assets/fes.png';
+
 export const App: React.FC = () => {
   const { viewMode } = useInspectionStore();
 
@@ -34,10 +36,12 @@ export const App: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-4 text-xs text-slate-400">
-          <span>Local Engine: <strong className="text-emerald-400">Online</strong></span>
-          <span>•</span>
-          <span>Zero-Cloud / Sub-pixel QA</span>
+        <div className="flex items-center">
+          <img
+            src={fesLogo}
+            alt="FES Logo"
+            className="h-8 w-auto object-contain bg-transparent select-none"
+          />
         </div>
       </header>
 

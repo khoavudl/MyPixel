@@ -27,6 +27,7 @@ export const LoadRunModal: React.FC<LoadRunModalProps> = ({ isOpen, onClose }) =
     setAnnotations,
     setTargetSizeMm,
     setViewMode,
+    setInspectionType,
   } = useInspectionStore();
 
   const [runs, setRuns] = useState<PastRunSummary[]>([]);
@@ -43,7 +44,7 @@ export const LoadRunModal: React.FC<LoadRunModalProps> = ({ isOpen, onClose }) =
       setErrorMsg(null);
       try {
         const res = await fetch('/api/runs');
-        if (!res.ok) throw new Error('Không thể tải danh sách lần chạy');
+        if (!res.ok) throw new Error('Failed to load runs list');
         const data: PastRunSummary[] = await res.json();
         setRuns(data);
       } catch (err) {
@@ -63,7 +64,7 @@ export const LoadRunModal: React.FC<LoadRunModalProps> = ({ isOpen, onClose }) =
     try {
       // 1. Fetch Run Status (with static image URLs & report)
       const statusRes = await fetch(`/api/runs/${run.run_id}`);
-      if (!statusRes.ok) throw new Error('Không thể tải thông tin lần chạy này');
+      if (!statusRes.ok) throw new Error('Failed to load run details');
       const statusData: RunStatusResponse = await statusRes.json();
 
       // 2. Fetch saved annotations
@@ -71,6 +72,12 @@ export const LoadRunModal: React.FC<LoadRunModalProps> = ({ isOpen, onClose }) =
       const annData: DefectBox[] = annRes.ok ? await annRes.json() : [];
 
       // 3. Populate Inspection Store
+      const isSingle =
+        run.run_type === 'single' ||
+        statusData.report?.mode === 'single' ||
+        statusData.report?.run_type === 'single';
+
+      setInspectionType(isSingle ? 'single' : 'compare');
       setRunId(run.run_id);
       setRunStatus(statusData);
       setAnnotations(annData);
@@ -83,7 +90,7 @@ export const LoadRunModal: React.FC<LoadRunModalProps> = ({ isOpen, onClose }) =
       setViewMode('workspace');
       onClose();
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Lỗi khi mở phiên làm việc');
+      alert(err instanceof Error ? err.message : 'Error opening inspection session');
     } finally {
       setLoadingRunId(null);
     }
@@ -102,7 +109,7 @@ export const LoadRunModal: React.FC<LoadRunModalProps> = ({ isOpen, onClose }) =
     if (!iso) return '-';
     try {
       const d = new Date(iso);
-      return d.toLocaleString('vi-VN', {
+      return d.toLocaleString('en-US', {
         dateStyle: 'short',
         timeStyle: 'medium',
       });
@@ -122,10 +129,10 @@ export const LoadRunModal: React.FC<LoadRunModalProps> = ({ isOpen, onClose }) =
             </div>
             <div>
               <h2 className="text-lg font-bold text-white tracking-tight">
-                Mở Phiên Kiểm Định Trong Quá Khứ
+                Load Historical Run
               </h2>
               <p className="text-xs text-slate-400">
-                Chọn một lần chạy đã lưu để vào thẳng Trạm kiểm định (Workspace)
+                Select a saved run to enter the inspection workspace
               </p>
             </div>
           </div>
@@ -144,14 +151,14 @@ export const LoadRunModal: React.FC<LoadRunModalProps> = ({ isOpen, onClose }) =
             <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Tìm kiếm theo mã run, tên file PDF hoặc trạng thái..."
+              placeholder="Search by run ID, PDF name, or status..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
             />
           </div>
           <span className="text-xs font-mono text-slate-500 shrink-0">
-            {filteredRuns.length} / {runs.length} lần chạy
+            {filteredRuns.length} / {runs.length} runs
           </span>
         </div>
 
@@ -160,7 +167,7 @@ export const LoadRunModal: React.FC<LoadRunModalProps> = ({ isOpen, onClose }) =
           {loading ? (
             <div className="py-16 flex flex-col items-center justify-center text-slate-400 gap-3">
               <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-              <span className="text-xs font-medium">Đang quét các lần chạy từ thư mục out/...</span>
+              <span className="text-xs font-medium">Scanning runs from out/ folder...</span>
             </div>
           ) : errorMsg ? (
             <div className="py-12 flex flex-col items-center justify-center text-red-400 gap-2">
@@ -170,8 +177,8 @@ export const LoadRunModal: React.FC<LoadRunModalProps> = ({ isOpen, onClose }) =
           ) : filteredRuns.length === 0 ? (
             <div className="py-16 text-center text-slate-500">
               <FileText className="w-10 h-10 mx-auto mb-3 opacity-40" />
-              <p className="text-sm font-semibold">Chưa có lần chạy nào phù hợp</p>
-              <p className="text-xs mt-1">Các lần chạy kiểm định hoàn tất sẽ tự động xuất hiện tại đây.</p>
+              <p className="text-sm font-semibold">No matching runs found</p>
+              <p className="text-xs mt-1">Completed inspection runs will automatically appear here.</p>
             </div>
           ) : (
             filteredRuns.map((r) => {
@@ -190,6 +197,17 @@ export const LoadRunModal: React.FC<LoadRunModalProps> = ({ isOpen, onClose }) =
                       <span className="font-mono text-xs font-bold text-blue-400">
                         {r.run_id}
                       </span>
+
+                      {/* Run Type Badge */}
+                      {r.run_type === 'single' ? (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                          Single
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                          Compare
+                        </span>
+                      )}
 
                       {/* Status Pill */}
                       <span
@@ -218,25 +236,34 @@ export const LoadRunModal: React.FC<LoadRunModalProps> = ({ isOpen, onClose }) =
 
                       {/* Annotations Count */}
                       {r.annotations_count > 0 && (
-                        <span className="px-2 py-0.5 rounded bg-purple-500/10 border border-purple-500/20 text-purple-300 text-[10px] font-medium flex items-center gap-1">
-                          <Layers className="w-3 h-3" /> {r.annotations_count} lỗi
+                        <span className="px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[10px] font-medium flex items-center gap-1">
+                          <Layers className="w-3 h-3" /> {r.annotations_count} {r.annotations_count === 1 ? 'defect' : 'defects'}
                         </span>
                       )}
                     </div>
 
                     {/* Files & Timestamp */}
                     <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-xs text-slate-300 mt-2">
-                      <div className="flex items-center gap-1 truncate">
-                        <span className="text-slate-500 font-medium">Brand:</span>
-                        <span className="font-medium text-slate-200 truncate">
-                          {r.brand_filename || 'brand.pdf'}
-                        </span>
-                        <span className="text-slate-600 mx-1">vs</span>
-                        <span className="text-slate-500 font-medium">Vendor:</span>
-                        <span className="font-medium text-slate-200 truncate">
-                          {r.vendor_filename || 'vendor.pdf'}
-                        </span>
-                      </div>
+                      {r.run_type === 'single' ? (
+                        <div className="flex items-center gap-1 truncate">
+                          <span className="text-slate-500 font-medium">Artwork:</span>
+                          <span className="font-medium text-slate-200 truncate">
+                            {r.brand_filename || 'Artwork'}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1 truncate">
+                          <span className="text-slate-500 font-medium">Old:</span>
+                          <span className="font-medium text-slate-200 truncate">
+                            {r.brand_filename || 'brand.pdf'}
+                          </span>
+                          <span className="text-slate-600 mx-1">vs</span>
+                          <span className="text-slate-500 font-medium">New:</span>
+                          <span className="font-medium text-slate-200 truncate">
+                            {r.vendor_filename || 'vendor.pdf'}
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-3 text-[11px] text-slate-500 mt-2">
@@ -245,7 +272,7 @@ export const LoadRunModal: React.FC<LoadRunModalProps> = ({ isOpen, onClose }) =
                       </span>
                       {!r.has_images && (
                         <span className="text-amber-500 flex items-center gap-1">
-                          <AlertTriangle className="w-3 h-3" /> (Chưa có ảnh kết quả)
+                          <AlertTriangle className="w-3 h-3" /> (No result images)
                         </span>
                       )}
                     </div>
@@ -260,11 +287,11 @@ export const LoadRunModal: React.FC<LoadRunModalProps> = ({ isOpen, onClose }) =
                     {isSelectedLoading ? (
                       <>
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        <span>Đang Mở...</span>
+                        <span>Opening...</span>
                       </>
                     ) : (
                       <>
-                        <span>Mở Trạm</span>
+                        <span>Open Session</span>
                         <ArrowRight className="w-3.5 h-3.5" />
                       </>
                     )}
@@ -277,12 +304,12 @@ export const LoadRunModal: React.FC<LoadRunModalProps> = ({ isOpen, onClose }) =
 
         {/* Footer */}
         <div className="px-6 py-4 bg-slate-950/80 border-t border-slate-800 flex items-center justify-between text-xs text-slate-500">
-          <span>Dữ liệu được đọc trực tiếp từ thư mục cục bộ <code>out/</code></span>
+          <span>Data loaded directly from local <code>out/</code> directory</span>
           <button
             onClick={onClose}
             className="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium cursor-pointer transition-colors"
           >
-            Đóng
+            Close
           </button>
         </div>
       </div>

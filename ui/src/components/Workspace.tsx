@@ -8,12 +8,28 @@ import { useInspectionStore } from '../store/useInspectionStore';
 import { getDisplayedDimensions } from '../utils/coordinateTransform';
 
 export const Workspace: React.FC = () => {
-  const { setViewport, viewport, naturalImageSize } = useInspectionStore();
+  const {
+    setViewport,
+    viewport,
+    naturalImageSize,
+    inspectionType,
+    runStatus,
+    isSidebarOpen,
+  } = useInspectionStore();
+
+  const isSingle =
+    inspectionType === 'single' ||
+    runStatus?.report?.mode === 'single' ||
+    runStatus?.report?.run_type === 'single';
 
   const handleFitToScreen = useCallback(() => {
-    // Standard fit for packaging aspect ratio taking rotation into account
-    const containerWidth = window.innerWidth * 0.58;
-    const containerHeight = (window.innerHeight - 80) * 0.48;
+    const sidebarWidth = isSidebarOpen ? 224 : 0;
+    const containerWidth = isSingle
+      ? Math.max(300, window.innerWidth - sidebarWidth - 48)
+      : window.innerWidth * 0.58;
+    const containerHeight = isSingle
+      ? Math.max(300, window.innerHeight - 80)
+      : (window.innerHeight - 80) * 0.48;
 
     const baseWidth = naturalImageSize?.w || 6000;
     const baseHeight = naturalImageSize?.h || 2500;
@@ -25,14 +41,15 @@ export const Workspace: React.FC = () => {
     const scaleY = containerHeight / displayedH;
     const fitZoom = Math.min(scaleX, scaleY) * 0.95;
 
-    const finalZoom = Math.max(0.08, Math.min(1.0, fitZoom));
+    const finalZoom = Math.max(0.05, Math.min(2.0, fitZoom));
 
     setViewport({
       zoom: finalZoom,
-      panX: Math.max(20, (containerWidth - displayedW * finalZoom) / 2),
-      panY: Math.max(20, (containerHeight - displayedH * finalZoom) / 2),
+      panX: Math.max(16, (containerWidth - displayedW * finalZoom) / 2),
+      panY: Math.max(16, (containerHeight - displayedH * finalZoom) / 2),
     });
-  }, [setViewport, viewport.rotation, naturalImageSize]);
+  }, [setViewport, viewport.rotation, naturalImageSize, isSingle, isSidebarOpen]);
+
 
   const handleActualSize = useCallback(() => {
     setViewport({

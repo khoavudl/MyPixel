@@ -41,7 +41,7 @@ export const DefectSidebar: React.FC = () => {
         body: JSON.stringify({ run_id: runId, format }),
       });
 
-      if (!res.ok) throw new Error('Xuất báo cáo thất bại');
+      if (!res.ok) throw new Error('Failed to export report');
 
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
@@ -66,11 +66,11 @@ export const DefectSidebar: React.FC = () => {
     return (
       <button
         onClick={() => setIsSidebarOpen(true)}
-        title="Mở danh sách lỗi"
+        title="Open defect list"
         className="fixed right-3 bottom-5 z-40 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 p-2.5 rounded-xl shadow-2xl flex items-center gap-2 cursor-pointer transition-all"
       >
         <ChevronLeft className="w-4 h-4" />
-        <span className="text-xs font-bold">Lỗi ({annotations.length})</span>
+        <span className="text-xs font-bold">Defects ({annotations.length})</span>
       </button>
     );
   }
@@ -82,7 +82,7 @@ export const DefectSidebar: React.FC = () => {
         <div className="flex items-center gap-1.5 min-w-0">
           <ListFilter className="w-4 h-4 text-blue-400 shrink-0" />
           <h3 className="font-bold text-white text-xs uppercase tracking-wider truncate">
-            Danh Sách Lỗi
+            Defect List
           </h3>
           <span className="px-1.5 py-0.2 rounded-full bg-blue-600/20 text-blue-400 text-[11px] font-extrabold border border-blue-500/30 shrink-0">
             {annotations.length}
@@ -91,7 +91,7 @@ export const DefectSidebar: React.FC = () => {
 
         <button
           onClick={() => setIsSidebarOpen(false)}
-          title="Thu gọn sidebar"
+          title="Collapse sidebar"
           className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors shrink-0"
         >
           <ChevronRight className="w-4 h-4" />
@@ -102,10 +102,10 @@ export const DefectSidebar: React.FC = () => {
       <div className="flex-1 overflow-y-auto p-2 space-y-2">
         {annotations.length === 0 ? (
           <div className="py-12 px-4 text-center text-slate-500 text-xs leading-relaxed">
-            <p className="font-medium text-slate-400 mb-1">Chưa có box lỗi nào</p>
+            <p className="font-medium text-slate-400 mb-1">No defects annotated yet</p>
             <p>
-              Chọn công cụ <strong>Draw Box (B)</strong> trên thanh công cụ và kéo chuột trên bất kỳ
-              khung hình nào để bắt lỗi.
+              Select <strong>Draw Box (B)</strong> on the toolbar and drag on any
+              viewport to flag a defect.
             </p>
           </div>
         ) : (
@@ -139,7 +139,7 @@ export const DefectSidebar: React.FC = () => {
 
                 {/* Card Note or Placeholder */}
                 <p className="text-xs text-slate-200 line-clamp-2 mb-2 font-normal">
-                  {box.note || <em className="text-slate-500">Chưa có ghi chú mô tả...</em>}
+                  {box.note || <em className="text-slate-500">No note entered...</em>}
                 </p>
 
                 {/* Card Bottom: Coordinates & Quick Actions */}
@@ -156,7 +156,7 @@ export const DefectSidebar: React.FC = () => {
                         e.stopPropagation();
                         jumpToBox(box);
                       }}
-                      title="Bay tới vị trí lỗi trên canvas"
+                      title="Focus defect on canvas"
                       className="p-1 hover:text-blue-400 text-slate-400 rounded transition-colors"
                     >
                       <Navigation className="w-3.5 h-3.5" />
@@ -167,7 +167,7 @@ export const DefectSidebar: React.FC = () => {
                         e.stopPropagation();
                         setActiveEditingBox(box);
                       }}
-                      title="Sửa thông tin note"
+                      title="Edit note"
                       className="p-1 hover:text-white text-slate-400 rounded transition-colors"
                     >
                       <Edit2 className="w-3.5 h-3.5" />
@@ -178,7 +178,7 @@ export const DefectSidebar: React.FC = () => {
                         e.stopPropagation();
                         deleteAnnotation(box.id);
                       }}
-                      title="Xoá lỗi này"
+                      title="Delete defect"
                       className="p-1 hover:text-red-400 text-slate-400 rounded transition-colors"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -205,12 +205,12 @@ export const DefectSidebar: React.FC = () => {
           {exportSuccess ? (
             <>
               <CheckCircle className="w-3.5 h-3.5" />
-              <span>Đã Tải Báo Cáo</span>
+              <span>Report Downloaded</span>
             </>
           ) : (
             <>
               <FileDown className="w-3.5 h-3.5" />
-              <span>{isExporting ? 'Đang Xuất...' : 'Xuất Báo Cáo (Export)'}</span>
+              <span>{isExporting ? 'Exporting...' : 'Export Audit Report'}</span>
             </>
           )}
         </button>
