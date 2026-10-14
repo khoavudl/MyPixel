@@ -1,6 +1,6 @@
 # TIẾN ĐỘ DỰ ÁN (PROJECT PROGRESS) – MYPIXEL (ARTDIFF)
 > **Cập nhật lần cuối:** 2026-10-14  
-> **Trạng thái hiện tại:** Đã hoàn thành Milestone 2A.1, 2A.2, 2A.3, 2A.4, Xoay Trực Giao 4 Hướng (0°/90°/180°/270°), Tối ưu Badge & Stroke Bất Biến Màn Hình, Cấu trúc 3 Chức Năng Mainscreen (F1: Load Past Run, F2: Compare 2 Files, F3: Single-file Inspection), Trạm Soi 1 Khung Hình Duy Nhất (Single View Inspection Workspace), Chuẩn Hoá Giao Diện Tiếng Anh Tinh Gọn, Tối ưu Định vị Box thoáng mắt, Milestone 2A.5: Xuất Báo Cáo Kiểm Định Chuyên Nghiệp (DOCX / PDF / Both), và **Nâng Cấp Tab Historical Run: Nút Xoá Session chuyển vào Thùng Rác (Recycle Bin / Trash) & Tinh giản Line 1 (chỉ gồm Tên Run, Loại Run, Số lượng Defect)**.  
+> **Trạng thái hiện tại:** Đã hoàn thành Milestone 2A.1, 2A.2, 2A.3, 2A.4, Xoay Trực Giao 4 Hướng (0°/90°/180°/270°), Tối ưu Badge & Stroke Bất Biến Màn Hình, Cấu trúc 3 Chức Năng Mainscreen (F1: Load Past Run, F2: Compare 2 Files, F3: Single-file Inspection), Trạm Soi 1 Khung Hình Duy Nhất (Single View Inspection Workspace), Chuẩn Hoá Giao Diện Tiếng Anh Tinh Gọn, Milestone 2A.5: Xuất Báo Cáo Kiểm Định Chuyên Nghiệp (DOCX / PDF / Both), Nâng cấp Tab Historical Run Xoá Session vào Trash, **Khống chế kích thước 2D cho ảnh Word (.docx) chống tràn trang, Thêm Logo FES vào góc trên bên phải báo cáo (DOCX, PDF, HTML), và Tối ưu Định vị Box cực đoan (quá ngang hoặc quá dài) luôn nhìn thấy 100% trọn vẹn**.  
 > **Tổng số bài test tự động:** 38/38 PASS (100%)
 
 ---

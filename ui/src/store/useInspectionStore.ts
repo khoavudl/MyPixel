@@ -240,23 +240,25 @@ export const useInspectionStore = create<InspectionState>((set) => ({
         state.runStatus?.report?.mode === 'single' ||
         state.runStatus?.report?.run_type === 'single';
 
-      const containerW = isSingle
-        ? (window.innerWidth - (state.isSidebarOpen ? 224 : 0) - 40)
-        : window.innerWidth * 0.45;
-      const containerH = isSingle
-        ? (window.innerHeight - 80)
-        : (window.innerHeight - 80) * 0.45;
+      const sidebarWidth = state.isSidebarOpen ? 224 : 0;
+      const totalAvailableW = Math.max(200, window.innerWidth - sidebarWidth - 36);
+      const totalAvailableH = Math.max(200, window.innerHeight - 56 - 36);
+
+      const containerW = isSingle ? totalAvailableW : totalAvailableW / 2;
+      const containerH = isSingle ? totalAvailableH : totalAvailableH / 2;
 
       const boxDisplayW =
         rot === 90 || rot === 270 ? box.norm_h * imgH : box.norm_w * imgW;
       const boxDisplayH =
         rot === 90 || rot === 270 ? box.norm_w * imgW : box.norm_h * imgH;
 
-      // 1.8 padding factor ensures generous breathing room (~30-40% margin) around the box
-      const paddingFactor = 1.8;
+      // 1.35 factor ensures box fills ~75% of container with 12-15% clean margins on all sides
+      const paddingFactor = 1.35;
       const zoomW = containerW / Math.max(10, boxDisplayW * paddingFactor);
       const zoomH = containerH / Math.max(10, boxDisplayH * paddingFactor);
-      const targetZoom = Math.min(3.0, Math.max(0.6, Math.min(zoomW, zoomH)));
+
+      // Clamp between 0.05 (handles ultra-wide / ultra-tall boxes on 8000px artboards) and 3.0 (for tiny marks)
+      const targetZoom = Math.min(3.0, Math.max(0.05, Math.min(zoomW, zoomH)));
 
       const newPanX = containerW / 2 - boxCenterX * targetZoom;
       const newPanY = containerH / 2 - boxCenterY * targetZoom;

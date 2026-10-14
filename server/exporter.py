@@ -40,8 +40,12 @@ from reportlab.platypus import (
     TableStyle,
 )
 
-from server.config import OUT_DIR
+from server.config import BASE_DIR, OUT_DIR
 from server.schemas import Annotation
+
+LOGO_PATH = BASE_DIR / "Logo-fes.png"
+if not LOGO_PATH.is_file():
+    LOGO_PATH = BASE_DIR / "ui" / "src" / "assets" / "fes.png"
 
 # Register system TrueType font for ReportLab Unicode (Vietnamese accents) support
 PDF_FONT_NAME = "Helvetica"
@@ -242,6 +246,33 @@ def _set_cell_margins(cell: Any, top: int = 120, bottom: int = 120, left: int = 
     tcPr.append(tcMar)
 
 
+def _remove_table_borders(table: Any) -> None:
+    """Remove all borders from a docx table for a clean header layout."""
+    tblPr = table._tbl.tblPr
+    tblBorders = parse_xml(
+        f'<w:tblBorders {nsdecls("w")}>'
+        '<w:top w:val="none"/><w:left w:val="none"/><w:bottom w:val="none"/><w:right w:val="none"/>'
+        '<w:insideH w:val="none"/><w:insideV w:val="none"/>'
+        '</w:tblBorders>'
+    )
+    tblPr.append(tblBorders)
+
+
+def _add_fitted_picture(paragraph: Any, image_path: Path, max_w_in: float, max_h_in: float) -> None:
+    """Insert picture scaled proportionally to fit within max_w_in and max_h_in without overflowing."""
+    try:
+        with Image.open(image_path) as im:
+            iw, ih = im.size
+        if iw <= 0 or ih <= 0:
+            return
+        scale = min(max_w_in / iw, max_h_in / ih)
+        final_w = Inches(iw * scale)
+        final_h = Inches(ih * scale)
+        paragraph.add_run().add_picture(str(image_path), width=final_w, height=final_h)
+    except Exception as exc:
+        print(f"Error adding picture to docx: {exc}")
+
+
 def export_docx_report(
     run_dir: Path,
     run_id: str,
@@ -287,14 +318,34 @@ def export_docx_report(
     crops_dir = run_dir / "report_crops"
     crops_dir.mkdir(parents=True, exist_ok=True)
 
-    # 1. Title
-    title_p = doc.add_paragraph()
-    title_run = title_p.add_run("ARTWORK REPORT")
+    # 1. Top Header: Title on Left, Logo-fes on Right
+    hdr_table = doc.add_table(rows=1, cols=2)
+    hdr_table.alignment = WD_TABLE_ALIGNMENT.CENTER
+    hdr_table.autofit = False
+    _remove_table_borders(hdr_table)
+
+    h_cells = hdr_table.rows[0].cells
+    h_cells[0].width = Inches(5.4)
+    h_cells[1].width = Inches(1.8)
+    _set_cell_margins(h_cells[0], top=0, bottom=40, left=0, right=0)
+    _set_cell_margins(h_cells[1], top=0, bottom=40, left=0, right=0)
+
+    p_title = h_cells[0].paragraphs[0]
+    p_title.paragraph_format.space_after = Pt(2)
+    title_run = p_title.add_run("ARTWORK REPORT")
     title_run.font.name = "Arial"
     title_run.font.size = Pt(20)
     title_run.font.bold = True
     title_run.font.color.rgb = RGBColor(30, 58, 138)  # Deep Navy #1e3a8a
-    title_p.paragraph_format.space_after = Pt(4)
+
+    p_logo = h_cells[1].paragraphs[0]
+    p_logo.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+    p_logo.paragraph_format.space_after = Pt(2)
+    if LOGO_PATH.is_file():
+        try:
+            p_logo.add_run().add_picture(str(LOGO_PATH), height=Inches(0.42))
+        except Exception:
+            pass
 
     # Sub-header meta line
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -422,13 +473,13 @@ def export_docx_report(
             run_no.font.color.rgb = RGBColor(220, 38, 38)
 
             if is_single:
-                # Col 1: Single crop
+                # Col 1: Single crop (fit both width and height to prevent page blowup)
                 crop_path = crops_dir / f"crop_{idx}_ref.png"
                 crop_defect_roi(single_path, ann, crop_path, padding_ratio=0.10)
                 if crop_path.is_file():
                     p_img = row_cells[1].paragraphs[0]
                     p_img.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                    p_img.add_run().add_picture(str(crop_path), width=Inches(3.8))
+                    _add_fitted_picture(p_img, crop_path, max_w_in=3.8, max_h_in=2.3)
                 # Col 2: Notes
                 p_note = row_cells[2].paragraphs[0]
                 run_note = p_note.add_run(ann.note if ann.note else "(No notes provided)")
@@ -438,21 +489,21 @@ def export_docx_report(
                     run_note.font.italic = True
                     run_note.font.color.rgb = RGBColor(148, 163, 184)
             else:
-                # Col 1: Old Version (Brand)
+                # Col 1: Old Version (Brand) - fit both width and height
                 old_crop = crops_dir / f"crop_{idx}_old.png"
                 crop_defect_roi(brand_path, ann, old_crop, padding_ratio=0.10)
                 if old_crop.is_file():
                     p_old = row_cells[1].paragraphs[0]
                     p_old.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                    p_old.add_run().add_picture(str(old_crop), width=Inches(2.2))
+                    _add_fitted_picture(p_old, old_crop, max_w_in=2.2, max_h_in=1.7)
 
-                # Col 2: New Version (Vendor)
+                # Col 2: New Version (Vendor) - fit both width and height
                 new_crop = crops_dir / f"crop_{idx}_new.png"
                 crop_defect_roi(vendor_path, ann, new_crop, padding_ratio=0.10)
                 if new_crop.is_file():
                     p_new = row_cells[2].paragraphs[0]
                     p_new.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                    p_new.add_run().add_picture(str(new_crop), width=Inches(2.2))
+                    _add_fitted_picture(p_new, new_crop, max_w_in=2.2, max_h_in=1.7)
 
                 # Col 3: Notes
                 p_note = row_cells[3].paragraphs[0]
@@ -586,8 +637,33 @@ def export_pdf_report(
 
     story: list[Any] = []
 
-    # Title
-    story.append(Paragraph("ARTWORK REPORT", title_title_style if "title_title_style" in locals() else title_style))
+    # Title & FES Logo Header Table
+    logo_elem: Any = ""
+    if LOGO_PATH.is_file():
+        try:
+            # 105 x 36.75 pt preserves ~2.86 aspect ratio
+            logo_elem = RLImage(str(LOGO_PATH), width=105, height=36.75)
+        except Exception:
+            logo_elem = ""
+
+    header_table_data = [[
+        Paragraph("ARTWORK REPORT", title_style),
+        logo_elem,
+    ]]
+    top_header_table = RLTable(header_table_data, colWidths=[usable_width - 110, 110])
+    top_header_table.setStyle(
+        TableStyle(
+            [
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ("ALIGN", (1, 0), (1, 0), "RIGHT"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                ("TOPPADDING", (0, 0), (-1, -1), 0),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+            ]
+        )
+    )
+    story.append(top_header_table)
 
     # Meta Table
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -865,9 +941,14 @@ def export_audit_report(
 </head>
 <body>
   <div class="container">
-    <div class="header">
-      <h1 style="margin: 0 0 6px 0; color: #1e3a8a;">ARTWORK REPORT</h1>
-      <p style="margin: 0; color: #64748b; font-size: 13px;">ID: <strong>{run_id}</strong> | Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | Prepared by: <strong>{inspector_name or 'N/A'}</strong></p>
+    <div class="header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 20px;">
+      <div>
+        <h1 style="margin: 0 0 6px 0; color: #1e3a8a;">ARTWORK REPORT</h1>
+        <p style="margin: 0; color: #64748b; font-size: 13px;">ID: <strong>{run_id}</strong> | Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | Prepared by: <strong>{inspector_name or 'N/A'}</strong></p>
+      </div>
+      <div>
+        <img src="/Logo-fes.png" alt="FES Logo" style="height: 38px; object-fit: contain;" onerror="this.src='/assets/fes.png'" />
+      </div>
     </div>
     <div class="meta-grid">
       <div><strong>Old Version:</strong> {Path(brand_input.get('pdf_path', '-')).name} (Page {brand_input.get('page_number', 1)})</div>
