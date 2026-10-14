@@ -1,0 +1,91 @@
+name: Build Standalone Packages (Windows & macOS)
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    name: Build Windows (.exe & .zip)
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build Frontend UI
+        working-directory: ./ui
+        run: |
+          npm ci || npm install
+          npm run build
+
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Build Windows Executable
+        run: |
+          python scripts/build_windows.py
+
+      - name: Upload Windows Distribution
+        uses: actions/upload-artifact@v4
+        with:
+          name: MyPixel-Windows
+          path: dist/MyPixel-Windows.zip
+          retention-days: 14
+
+  build-macos:
+    name: Build macOS (.app & .zip)
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build Frontend UI
+        working-directory: ./ui
+        run: |
+          npm ci || npm install
+          npm run build
+
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Build macOS Application
+        run: |
+          python scripts/build_mac.py
+
+      - name: Upload macOS Distribution
+        uses: actions/upload-artifact@v4
+        with:
+          name: MyPixel-macOS
+          path: dist/MyPixel-macOS.zip
+          retention-days: 14

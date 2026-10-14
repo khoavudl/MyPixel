@@ -6,3 +6,6 @@ __pycache__/
 .DS_Store
 sample/
 dist/
+build/
+.pyi_cache/
+*.iconset/
