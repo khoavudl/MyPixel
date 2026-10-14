@@ -40,12 +40,8 @@ from reportlab.platypus import (
     TableStyle,
 )
 
-from server.config import BASE_DIR, OUT_DIR
+from server.config import BASE_DIR, OUT_DIR, LOGO_PATH
 from server.schemas import Annotation
-
-LOGO_PATH = BASE_DIR / "Logo-fes.png"
-if not LOGO_PATH.is_file():
-    LOGO_PATH = BASE_DIR / "ui" / "src" / "assets" / "fes.png"
 
 # Register system TrueType font for ReportLab Unicode (Vietnamese accents) support
 PDF_FONT_NAME = "Helvetica"
@@ -54,6 +50,8 @@ PDF_FONT_BOLD = "Helvetica-Bold"
 for candidate_path in [
     "/System/Library/Fonts/Supplemental/Arial.ttf",
     "/Library/Fonts/Arial.ttf",
+    os.path.join(os.environ.get("WINDIR", "C:\\Windows"), "Fonts", "arial.ttf"),
+    "C:\\Windows\\Fonts\\arial.ttf",
     "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
 ]:
     if os.path.exists(candidate_path):
