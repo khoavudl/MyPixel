@@ -6,7 +6,9 @@ Supports macOS and Windows seamlessly.
 
 from __future__ import annotations
 
+from copy import deepcopy
 import os
+from pathlib import Path
 import socket
 import sys
 import threading
@@ -14,7 +16,51 @@ import time
 import urllib.request
 import webbrowser
 
+# Ensure sys.stdout and sys.stderr are valid stream objects with isatty() support.
+# In PyInstaller windowed mode (console=False on Windows), sys.stdout/stderr are None,
+# which causes uvicorn/click/colorama to fail with AttributeError: 'NoneType' object has no attribute 'isatty'.
+class SafeStream:
+    """Null/file-backed stream that safely handles write/flush/isatty in GUI mode."""
+
+    def __init__(self, log_file: Path | None = None) -> None:
+        self.log_file = log_file
+
+    def write(self, data: str) -> int:
+        if self.log_file:
+            try:
+                with open(self.log_file, "a", encoding="utf-8") as f:
+                    f.write(data)
+            except Exception:
+                pass
+        return len(data)
+
+    def flush(self) -> None:
+        pass
+
+    def isatty(self) -> bool:
+        return False
+
+
+# Setup launcher log path in user documents
+log_dir = Path.home() / "Documents" / "MyPixel"
+try:
+    log_dir.mkdir(parents=True, exist_ok=True)
+    launcher_log = log_dir / "launcher.log"
+except Exception:
+    launcher_log = None
+
+if sys.stdout is None or not hasattr(sys.stdout, "isatty"):
+    sys.stdout = SafeStream(launcher_log)
+if sys.stderr is None or not hasattr(sys.stderr, "isatty"):
+    sys.stderr = SafeStream(launcher_log)
+if sys.stdin is None:
+    try:
+        sys.stdin = open(os.devnull, "r", encoding="utf-8")
+    except Exception:
+        pass
+
 import uvicorn
+from uvicorn.config import LOGGING_CONFIG
 
 
 DEFAULT_HOST = "127.0.0.1"
@@ -100,12 +146,18 @@ def main() -> None:
     # Import the FastAPI app directly so PyInstaller bundles it reliably
     from server.app import app
 
+    safe_log_config = deepcopy(LOGGING_CONFIG)
+    for formatter in safe_log_config.get("formatters", {}).values():
+        formatter["use_colors"] = False
+
     config = uvicorn.Config(
         app=app,
         host=DEFAULT_HOST,
         port=target_port,
         log_level="info",
         access_log=False,
+        use_colors=False,
+        log_config=safe_log_config,
     )
     server = uvicorn.Server(config)
     server.run()
