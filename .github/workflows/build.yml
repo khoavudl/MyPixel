@@ -1,15 +1,22 @@
-name: Build Standalone Packages (Windows & macOS)
+name: Build Standalone Packages
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
   workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Chọn nền tảng bạn muốn build:'
+        required: true
+        default: 'windows'
+        type: choice
+        options:
+          - 'windows'
+          - 'macos'
+          - 'both'
 
 jobs:
   build-windows:
     name: Build Windows (.exe & .zip)
+    if: ${{ github.event.inputs.platform == 'windows' || github.event.inputs.platform == 'both' }}
     runs-on: windows-latest
 
     steps:
@@ -51,6 +58,7 @@ jobs:
 
   build-macos:
     name: Build macOS (.app & .zip)
+    if: ${{ github.event.inputs.platform == 'macos' || github.event.inputs.platform == 'both' }}
     runs-on: macos-14
 
     steps:
