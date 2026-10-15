@@ -49,6 +49,9 @@ hiddenimports = [
     "webview.platforms.edgechromium",
 ]
 
+if sys.platform == "win32":
+    hiddenimports += ["clr", "clr_loader", "pythonnet"]
+
 a = Analysis(
     ['launcher.py'],
     pathex=[ROOT_DIR],

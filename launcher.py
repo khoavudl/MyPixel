@@ -243,17 +243,27 @@ def main() -> None:
         if not wait_for_server(app_url, timeout=15.0):
             print("Warning: Backend health check timed out. Attempting to open window anyway...")
 
-        webview.settings["ALLOW_DOWNLOADS"] = True
-        webview.create_window(
-            title="MyPixel - Packaging Artwork Inspection",
-            url=app_url,
-            width=1440,
-            height=920,
-            min_size=(1024, 700),
-            text_select=True,
-        )
         try:
+            webview.settings["ALLOW_DOWNLOADS"] = True
+            webview.create_window(
+                title="MyPixel - Packaging Artwork Inspection",
+                url=app_url,
+                width=1440,
+                height=920,
+                min_size=(1024, 700),
+                text_select=True,
+            )
             webview.start()
+        except Exception as exc:
+            print(f"Warning: Failed to launch native desktop window ({exc}).")
+            print("Falling back to default web browser...")
+            webbrowser.open(app_url)
+            # Keep server running in browser fallback mode until user interrupts
+            try:
+                while server_thread.is_alive():
+                    time.sleep(1.0)
+            except KeyboardInterrupt:
+                pass
         finally:
             print("Closing MyPixel server...")
             server.should_exit = True

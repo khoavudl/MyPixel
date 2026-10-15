@@ -114,6 +114,12 @@
 * [`tests/test_server.py`](file:///Users/tindn/Downloads/MyPixel-v1/tests/test_server.py): Thêm bài test `test_delete_all_runs` kiểm thử tạo nhiều phiên và xóa toàn bộ qua API.
 * [`ui/dist`](file:///Users/tindn/Downloads/MyPixel-v1/ui/dist): Đã biên dịch lại bản production bundle thành công (1.41s).
 
+### 2.9. Tối Ưu Cấu Hình Build CI/CD Đa Nền Tảng (Milestone 2A.10)
+* [`.github/workflows/build.yml`](file:///Users/tindn/Downloads/MyPixel-v1/.github/workflows/build.yml): Quy trình GitHub Actions giữ nguyên kiến trúc chuẩn (chạy trên `windows-latest` và `macos-14`), không cần sửa đổi file YAML.
+* [`requirements.txt`](file:///Users/tindn/Downloads/MyPixel-v1/requirements.txt): Bổ sung `pythonnet>=3.0.3; sys_platform == 'win32'` và `pyobjc` cho `darwin` để runner Windows của GitHub cài đủ driver điều khiển Edge WebView2.
+* [`mypixel.spec`](file:///Users/tindn/Downloads/MyPixel-v1/mypixel.spec): Tự động nạp các hidden imports cho Windows (`clr`, `clr_loader`, `pythonnet`) khi chạy trên `win32`.
+* [`launcher.py`](file:///Users/tindn/Downloads/MyPixel-v1/launcher.py): Bổ sung cơ chế fallback an toàn: nếu máy người dùng thiếu runtime WebView2 hoặc lỗi giao diện native thì tự động fallback mở trình duyệt mặc định, đảm bảo app không bao giờ bị crash khi chạy trên cả Mac lẫn Windows.
+
 ---
 
 ## 3. Nhật Ký Kiểm Thử (Verification Log)
