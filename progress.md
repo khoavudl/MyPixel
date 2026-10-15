@@ -114,11 +114,12 @@
 * [`tests/test_server.py`](file:///Users/tindn/Downloads/MyPixel-v1/tests/test_server.py): Thêm bài test `test_delete_all_runs` kiểm thử tạo nhiều phiên và xóa toàn bộ qua API.
 * [`ui/dist`](file:///Users/tindn/Downloads/MyPixel-v1/ui/dist): Đã biên dịch lại bản production bundle thành công (1.41s).
 
-### 2.9. Tối Ưu Cấu Hình Build CI/CD Đa Nền Tảng (Milestone 2A.10)
-* [`.github/workflows/build.yml`](file:///Users/tindn/Downloads/MyPixel-v1/.github/workflows/build.yml): Quy trình GitHub Actions giữ nguyên kiến trúc chuẩn (chạy trên `windows-latest` và `macos-14`), không cần sửa đổi file YAML.
-* [`requirements.txt`](file:///Users/tindn/Downloads/MyPixel-v1/requirements.txt): Bổ sung `pythonnet>=3.0.3; sys_platform == 'win32'` và `pyobjc` cho `darwin` để runner Windows của GitHub cài đủ driver điều khiển Edge WebView2.
-* [`mypixel.spec`](file:///Users/tindn/Downloads/MyPixel-v1/mypixel.spec): Tự động nạp các hidden imports cho Windows (`clr`, `clr_loader`, `pythonnet`) khi chạy trên `win32`.
-* [`launcher.py`](file:///Users/tindn/Downloads/MyPixel-v1/launcher.py): Bổ sung cơ chế fallback an toàn: nếu máy người dùng thiếu runtime WebView2 hoặc lỗi giao diện native thì tự động fallback mở trình duyệt mặc định, đảm bảo app không bao giờ bị crash khi chạy trên cả Mac lẫn Windows.
+### 2.10. Tự Động Xuất Bản Public GitHub Releases (Milestone 2A.11)
+* [`.github/workflows/build.yml`](file:///Users/tindn/Downloads/MyPixel-v1/.github/workflows/build.yml):
+  - Thêm job `publish-release`: gom toàn bộ file `.zip` từ các job build Windows và macOS.
+  - Sử dụng `softprops/action-gh-release@v2` tự động đăng tải lên mục **Releases** của GitHub (gắn cờ `make_latest: true`).
+  - Cho phép người dùng tải trực tiếp vĩnh viễn không giới hạn 14 ngày, **hoàn toàn không cần tài khoản GitHub hay đăng nhập**.
+  - Bổ sung tùy chọn `tag_name` (mặc định `v2.0.0`) và cờ `publish_release` (mặc định `true`) trong menu trigger của Actions.
 
 ---
 

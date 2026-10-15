@@ -6,12 +6,25 @@ on:
       platform:
         description: 'Chọn nền tảng bạn muốn build:'
         required: true
-        default: 'windows'
+        default: 'both'
         type: choice
         options:
+          - 'both'
           - 'windows'
           - 'macos'
-          - 'both'
+      tag_name:
+        description: 'Tên phiên bản Release (ví dụ: v2.0.0):'
+        required: true
+        default: 'v2.0.0'
+        type: string
+      publish_release:
+        description: 'Tự động xuất bản GitHub Release public (cho tải không cần login):'
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
 
 jobs:
   build-windows:
@@ -97,3 +110,43 @@ jobs:
           name: MyPixel-macOS
           path: dist/MyPixel-macOS.zip
           retention-days: 14
+
+  publish-release:
+    name: Publish Public GitHub Release
+    needs: [build-windows, build-macos]
+    if: always() && (needs.build-windows.result == 'success' || needs.build-macos.result == 'success') && (github.event.inputs.publish_release != false)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag_name || 'v2.0.0' }}
+          name: MyPixel ${{ github.event.inputs.tag_name || 'v2.0.0' }} (Standalone Desktop)
+          body: |
+            ## 📦 MyPixel - Packaging Artwork Inspection (Standalone Desktop)
+
+            Bản cài đặt đóng gói độc lập cho Windows và macOS. Chạy trực tiếp dạng Native Desktop Window (không cần cài Python).
+
+            ### 📥 Hướng dẫn tải & sử dụng:
+            * **Windows**:
+              1. Tải file `MyPixel-Windows.zip` bên dưới.
+              2. Giải nén vào thư mục bất kỳ.
+              3. Mở file `MyPixel.exe` để bắt đầu kiểm định.
+            * **macOS**:
+              1. Tải file `MyPixel-macOS.zip` bên dưới.
+              2. Giải nén được `MyPixel.app`.
+              3. Mở ứng dụng và bắt đầu kiểm định.
+          files: release-assets/*.zip
+          draft: false
+          prerelease: false
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
