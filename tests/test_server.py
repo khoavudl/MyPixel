@@ -271,3 +271,37 @@ def test_delete_run(client, sample_pdfs):
     assert client.delete("/api/runs/..foo").status_code == 400
 
 
+def test_analyze_full_page_sheet_mode(client, sample_pdfs):
+    brand_pdf, vendor_pdf = sample_pdfs
+
+    with open(brand_pdf, "rb") as f_brand, open(vendor_pdf, "rb") as f_vendor:
+        response = client.post(
+            "/api/analyze",
+            data={"crop_mode": "full", "brand_page": "1", "vendor_page": "1"},
+            files={
+                "brand_file": ("brand.pdf", f_brand, "application/pdf"),
+                "vendor_file": ("vendor.pdf", f_vendor, "application/pdf"),
+            },
+        )
+    assert response.status_code == 200
+    res_data = response.json()
+    assert "run_id" in res_data
+    run_id = res_data["run_id"]
+
+    # Stream WebSocket until complete
+    with client.websocket_connect(f"/ws/runs/{run_id}") as ws:
+        for _ in range(30):
+            data = ws.receive_json()
+            if data.get("type") in ("complete", "error"):
+                break
+
+    # Verify run completed with full page canvas
+    status_res = client.get(f"/api/runs/{run_id}")
+    assert status_res.status_code == 200
+    status_data = status_res.json()
+    assert status_data["status"] == "PASS"
+    assert status_data["images"]["overlay"] is not None
+    assert status_data["report"]["target_size_mm"] is not None
+
+
+

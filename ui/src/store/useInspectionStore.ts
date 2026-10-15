@@ -24,6 +24,7 @@ interface InspectionState {
   targetSizeMm: string;
   brandPage: number;
   vendorPage: number;
+  compareCropMode: 'auto' | 'full';
 
   // Function 3: Setup inputs (Single Inspection)
   singleFile: File | null;
@@ -63,6 +64,7 @@ interface InspectionState {
   setTargetSizeMm: (size: string) => void;
   setBrandPage: (page: number) => void;
   setVendorPage: (page: number) => void;
+  setCompareCropMode: (mode: 'auto' | 'full') => void;
   setSingleFile: (file: File | null) => void;
   setSinglePage: (page: number) => void;
   setSingleTargetSizeMm: (size: string) => void;
@@ -110,13 +112,14 @@ export const useInspectionStore = create<InspectionState>((set) => ({
 
   brandFile: null,
   vendorFile: null,
-  targetSizeMm: '620x250',
+  targetSizeMm: '',
   brandPage: 1,
   vendorPage: 1,
+  compareCropMode: 'auto',
 
   singleFile: null,
   singlePage: 1,
-  singleTargetSizeMm: '620x250',
+  singleTargetSizeMm: '',
   singleCropMode: 'auto',
 
   runId: null,
@@ -147,6 +150,7 @@ export const useInspectionStore = create<InspectionState>((set) => ({
   setTargetSizeMm: (size) => set({ targetSizeMm: size }),
   setBrandPage: (page) => set({ brandPage: page }),
   setVendorPage: (page) => set({ vendorPage: page }),
+  setCompareCropMode: (mode) => set({ compareCropMode: mode }),
   setSingleFile: (file) => set({ singleFile: file }),
   setSinglePage: (page) => set({ singlePage: page }),
   setSingleTargetSizeMm: (size) => set({ singleTargetSizeMm: size }),

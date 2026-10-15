@@ -15,7 +15,7 @@ from typing import Any, Callable
 import cv2
 import yaml
 
-from artdiff.core.models import ArtDiffError, Artboard, Frame
+from artdiff.core.models import ArtDiffError, Artboard, Frame, FrameDetectionReport
 from artdiff.ingest.pdf_renderer import render_page
 from artdiff.normalize.aligner import align_artboards
 from artdiff.normalize.cropper import confirm_frame, crop
@@ -111,7 +111,7 @@ def _rerender_and_crop(
 def run_phase1(
     brand_pdf: str | Path,
     vendor_pdf: str | Path,
-    target_size_mm: tuple[float, float],
+    target_size_mm: tuple[float, float] | None = None,
     brand_page: int = 1,
     vendor_page: int = 1,
     profile_path: str | Path | None = None,
@@ -153,7 +153,7 @@ def run_phase1(
         "run_id": run_id,
         "timestamp_utc": datetime.now(timezone.utc).isoformat(),
         "mode": mode,
-        "target_size_mm": list(target_size_mm),
+        "target_size_mm": list(target_size_mm) if target_size_mm else None,
         "inputs": {
             "brand": {"pdf_path": str(brand_pdf), "page_number": brand_page},
             "vendor": {"pdf_path": str(vendor_pdf), "page_number": vendor_page},
@@ -204,40 +204,86 @@ def run_phase1(
         report["tasks"]["task1_render"] = {"ok": True, "elapsed_ms": t1_ms}
         _notify("step_end", "task1_render", "SUCCESS", f"Rendered PDF pages in {t1_ms}ms")
 
-        # --- Task 2: Frame Detection (both Vector and Raster) ---
-        _notify("step_start", "task2_frame_detect", "IN_PROGRESS", f"Detecting target artwork frame {target_size_mm[0]}x{target_size_mm[1]} mm...")
-        t0 = time.perf_counter()
-        brand_det = detect_frame(brand_raster, target_size_mm, profile)
-        vendor_det = detect_frame(vendor_raster, target_size_mm, profile)
-        brand_preview = save_frame_preview(
-            brand_raster, brand_det, run_dir / "frame_brand.png"
-        )
-        vendor_preview = save_frame_preview(
-            vendor_raster, vendor_det, run_dir / "frame_vendor.png"
-        )
-        t2_ms = round((time.perf_counter() - t0) * 1000.0, 2)
+        is_full_page = mode in ("full_page", "full") or target_size_mm is None
+        if is_full_page:
+            target_size_mm = (round(brand_raster.page_size_mm[0], 4), round(brand_raster.page_size_mm[1], 4))
+            report["target_size_mm"] = list(target_size_mm)
 
-        report["tasks"]["task2_frame_detect"] = {
-            "ok": True,
-            "elapsed_ms": t2_ms,
-            "brand": asdict(brand_det),
-            "vendor": asdict(vendor_det),
-            "previews": {
-                "brand": str(brand_preview),
-                "vendor": str(vendor_preview),
-            },
-        }
-        _notify("step_end", "task2_frame_detect", "SUCCESS", f"Detected artwork frames in {t2_ms}ms (Brand: {brand_det.selected.method}, Vendor: {vendor_det.selected.method})")
+        # --- Task 2: Frame Detection ---
+        if is_full_page:
+            _notify("step_start", "task2_frame_detect", "IN_PROGRESS", f"Using full page sheet canvas {target_size_mm[0]}x{target_size_mm[1]} mm...")
+            t0 = time.perf_counter()
+            brand_frame = Frame(
+                bbox_mm=(0.0, 0.0, brand_raster.page_size_mm[0], brand_raster.page_size_mm[1]),
+                method="full_page",
+                confidence=1.0,
+                size_err_mm=(0.0, 0.0),
+                confirmed=True,
+                elapsed_ms=0.0,
+            )
+            vendor_frame = Frame(
+                bbox_mm=(0.0, 0.0, vendor_raster.page_size_mm[0], vendor_raster.page_size_mm[1]),
+                method="full_page",
+                confidence=1.0,
+                size_err_mm=(0.0, 0.0),
+                confirmed=True,
+                elapsed_ms=0.0,
+            )
+            brand_det = FrameDetectionReport(target_size_mm, None, None, None, brand_frame)
+            vendor_det = FrameDetectionReport(target_size_mm, None, None, None, vendor_frame)
+            brand_preview = save_frame_preview(
+                brand_raster, brand_det, run_dir / "frame_brand.png"
+            )
+            vendor_preview = save_frame_preview(
+                vendor_raster, vendor_det, run_dir / "frame_vendor.png"
+            )
+            t2_ms = round((time.perf_counter() - t0) * 1000.0, 2)
+            report["tasks"]["task2_frame_detect"] = {
+                "ok": True,
+                "elapsed_ms": t2_ms,
+                "brand": asdict(brand_det),
+                "vendor": asdict(vendor_det),
+                "previews": {
+                    "brand": str(brand_preview),
+                    "vendor": str(vendor_preview),
+                },
+            }
+            _notify("step_end", "task2_frame_detect", "SUCCESS", f"Using full page sheet ({target_size_mm[0]:.1f}x{target_size_mm[1]:.1f} mm)")
+        else:
+            _notify("step_start", "task2_frame_detect", "IN_PROGRESS", f"Detecting target artwork frame {target_size_mm[0]}x{target_size_mm[1]} mm...")
+            t0 = time.perf_counter()
+            brand_det = detect_frame(brand_raster, target_size_mm, profile)
+            vendor_det = detect_frame(vendor_raster, target_size_mm, profile)
+            brand_preview = save_frame_preview(
+                brand_raster, brand_det, run_dir / "frame_brand.png"
+            )
+            vendor_preview = save_frame_preview(
+                vendor_raster, vendor_det, run_dir / "frame_vendor.png"
+            )
+            t2_ms = round((time.perf_counter() - t0) * 1000.0, 2)
+
+            report["tasks"]["task2_frame_detect"] = {
+                "ok": True,
+                "elapsed_ms": t2_ms,
+                "brand": asdict(brand_det),
+                "vendor": asdict(vendor_det),
+                "previews": {
+                    "brand": str(brand_preview),
+                    "vendor": str(vendor_preview),
+                },
+            }
+            _notify("step_end", "task2_frame_detect", "SUCCESS", f"Detected artwork frames in {t2_ms}ms (Brand: {brand_det.selected.method}, Vendor: {vendor_det.selected.method})")
 
         # --- Task 3: Confirm & Crop ---
         _notify("step_start", "task3_crop", "IN_PROGRESS", "Cropping pages to detected artboards...")
         t0 = time.perf_counter()
-        brand_frame = confirm_frame(
-            brand_det, brand_preview, mode=mode, input_fn=input_fn
-        )
-        vendor_frame = confirm_frame(
-            vendor_det, vendor_preview, mode=mode, input_fn=input_fn
-        )
+        if not is_full_page:
+            brand_frame = confirm_frame(
+                brand_det, brand_preview, mode=mode, input_fn=input_fn
+            )
+            vendor_frame = confirm_frame(
+                vendor_det, vendor_preview, mode=mode, input_fn=input_fn
+            )
         art_a = crop(brand_raster, brand_frame)
         art_b = crop(vendor_raster, vendor_frame)
         cv2.imwrite(str(run_dir / "brand_cropped.png"), art_a.img)

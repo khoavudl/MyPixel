@@ -109,7 +109,7 @@ class RunManager:
         run_id: str,
         brand_pdf: Path | str,
         vendor_pdf: Path | str,
-        target_size_mm: tuple[float, float],
+        target_size_mm: tuple[float, float] | None = None,
         brand_page: int = 1,
         vendor_page: int = 1,
         profile_path: Path | str | None = None,

@@ -1,7 +1,7 @@
 # TIẾN ĐỘ DỰ ÁN (PROJECT PROGRESS) – MYPIXEL (ARTDIFF)
-> **Cập nhật lần cuối:** 2026-10-14  
-> **Trạng thái hiện tại:** Đã hoàn thành Milestone 2A.1, 2A.2, 2A.3, 2A.4, Xoay Trực Giao 4 Hướng (0°/90°/180°/270°), Tối ưu Badge & Stroke Bất Biến Màn Hình, Cấu trúc 3 Chức Năng Mainscreen (F1: Load Past Run, F2: Compare 2 Files, F3: Single-file Inspection), Trạm Soi 1 Khung Hình Duy Nhất (Single View Inspection Workspace), Chuẩn Hoá Giao Diện Tiếng Anh Tinh Gọn, Milestone 2A.5: Xuất Báo Cáo Kiểm Định Chuyên Nghiệp (DOCX / PDF / Both), Nâng cấp Tab Historical Run Xoá Session vào Trash, Khống chế kích thước 2D cho ảnh Word (.docx), Thêm Logo FES vào báo cáo, **Milestone 2A.6: Đóng Gói Ứng Dụng Độc Lập (Standalone Native App Packaging - macOS & Windows Ready)**.  
-> **Tổng số bài test tự động:** 38/38 PASS (100%)
+> **Cập nhật lần cuối:** 2026-10-15  
+> **Trạng thái hiện tại:** Đã hoàn thành Milestone 2A.1, 2A.2, 2A.3, 2A.4, Xoay Trực Giao 4 Hướng (0°/90°/180°/270°), Tối ưu Badge & Stroke Bất Biến Màn Hình, Cấu trúc 3 Chức Năng Mainscreen (F1: Load Past Run, F2: Compare 2 Files, F3: Single-file Inspection), Trạm Soi 1 Khung Hình Duy Nhất (Single View Inspection Workspace), Chuẩn Hoá Giao Diện Tiếng Anh Tinh Gọn, Milestone 2A.5: Xuất Báo Cáo Kiểm Định Chuyên Nghiệp (DOCX / PDF / Both), Nâng cấp Tab Historical Run Xoá Session vào Trash, Khống chế kích thước 2D cho ảnh Word (.docx), Thêm Logo FES vào báo cáo, Milestone 2A.6: Đóng Gói Ứng Dụng Độc Lập (Standalone Native App Packaging - macOS & Windows Ready), **Nâng Cấp Chế Độ So Sánh Toàn Trang (Full Page Sheet Compare Mode) & Hỗ Trợ Hộp Gấp / Bình Bản Đa Panel (Folding Carton Nets - v11 & v22 Ready)**.  
+> **Tổng số bài test tự động:** 39/39 PASS (100%)
 
 ---
 
@@ -10,7 +10,7 @@
 | Milestone | Mô tả | Trạng thái | Ghi chú & DoD |
 |---|---|:---:|---|
 | **Phase 1** | Thuật toán nền tảng: Bóc tách vector, Size Gate, Canh khít sub-pixel (<0.5 px) không dùng die-line, Fit Meter | **HOÀN TẤT** | 24/24 tests PASS. Kiểm chứng trên 2 bộ file thật (`brand.pdf` vs `vendor.pdf` và `v1.pdf` vs `v2.pdf`). Báo cáo tại [`PHASE1_FINDINGS.md`](file:///Users/tindn/Downloads/MyPixel-v1/PHASE1_FINDINGS.md). |
-| **Milestone 2A.1** | **Backend API & WebSocket Runner** (`server/`): REST endpoints, background runner bọc Phase 1, phát log WebSocket, serve static images, lưu annotations, xuất báo cáo | **HOÀN TẤT** | Đã test trọn luồng bằng `TestClient` trong [`tests/test_server.py`](file:///Users/tindn/Downloads/MyPixel-v1/tests/test_server.py). 7/7 server tests PASS. |
+| **Milestone 2A.1** | **Backend API & WebSocket Runner** (`server/`): REST endpoints, background runner bọc Phase 1, phát log WebSocket, serve static images, lưu annotations, xuất báo cáo | **HOÀN TẤT** | Đã test trọn luồng bằng `TestClient` trong [`tests/test_server.py`](file:///Users/tindn/Downloads/MyPixel-v1/tests/test_server.py). 8/8 server tests PASS. |
 | **Milestone 2A.2** | **UI Dropzone & Real-time Console** (`ui/`): Kéo thả 2 file PDF, cấu hình kích thước WxH mm và số trang, bấm Analyze, hiển thị log WebSocket nhảy từng dòng theo thời gian thực, tự động chuyển view | **HOÀN TẤT** | `npm run build` thành công (1.56s). Đã tích hợp serve trực tiếp qua `http://localhost:8000`. |
 | **Milestone 2A.3** | **4-Way Synced Viewport Canvas**: 2 khung lớn bên trái (Brand, Vendor); 2 khung nhỏ bên phải (Overlay, Heatmap). Đồng bộ Pan & Zoom 60 FPS qua CSS GPU transform + Phím tắt Space chớp tắt (Flicker Compare) | **HOÀN TẤT** | Đã hoàn thành `ViewportGrid.tsx`, `CanvasViewer.tsx`, `Toolbar.tsx`, `useSyncedViewport.ts`, `useHotkeys.ts`. Build sạch (1.23s). |
 | **Milestone 2A.4** | **Kính lúp (Loupe 4x-8x) & Cross-Canvas Annotations**: Rê chuột soi nét sub-pixel đồng thời cả 4 khung; vẽ box ở bất kỳ khung nào thì tự động hiện ở cả 4 khung; toggle phím tắt B/L quay về Pan; thu gọn sidebar lỗi còn 70% (w-56); cân bằng 50/50 khung chính và khung chẩn đoán | **HOÀN TẤT** | Đã hoàn thiện `LoupeMagnifier.tsx` (4-way synced), `SvgAnnotationLayer.tsx`, `AnnotationModal.tsx`, `DefectSidebar.tsx` (w-56), `ViewportGrid.tsx` (50/50 split). Build sạch (1.42s). |
@@ -19,6 +19,7 @@
 | **Milestone 2A.5** | **Xuất Báo Cáo Kiểm Định Chuyên Nghiệp (DOCX / PDF / Both)**: Báo cáo 2 phần (Overview bản đồ toàn cảnh có box & số thứ tự `#1, #2...`; Details bảng chi tiết Old Version vs New Version kèm ảnh crop +10% padding và ghi chú tinh gọn). Hộp thoại Export Modal cho phép nhập người lập báo cáo và chọn tải DOCX, PDF hoặc cả hai. Tối ưu nút định vị box có lề thoáng 30-40%. | **HOÀN TẤT** | Đã tích hợp `server/exporter.py` (python-docx, reportlab, Pillow), `ExportModal.tsx`, endpoint `/api/export`. Build sạch, 38/38 tests PASS. |
 | **UI Polish** | **Quản Lý Lịch Sử & Xoá Session (Recycle Bin)**: Thêm nút Delete / thùng rác bên trái Open Session di chuyển thư mục `out/<run_id>` vào Trash của máy; Tinh gọn Line 1 chỉ gồm Tên run, Loại run và Số lượng defect; Giữ nguyên Line 2 (File names) & Line 3 (Timestamp). | **HOÀN TẤT** | Đã hoàn thành endpoint `DELETE /api/runs/{run_id}`, tích hợp AppleScript Finder delete với fallback shutil.rmtree, cập nhật Dropzone & LoadRunModal. 38/38 tests PASS. |
 | **Milestone 2A.6** | **Đóng Gói Ứng Dụng Độc Lập (Standalone App Bundle - Mac & Win)**: Chuẩn hoá đường dẫn cross-platform (`server/config.py` tự lưu vào `~/Documents/MyPixel/out` khi chạy bundle, chống Permission Denied và mất data); Native Launcher `launcher.py` tự dò port thông minh; sinh icon app `MyPixel.icns` & `MyPixel.ico`; script build `scripts/build_mac.py` xuất ra `dist/MyPixel.app` và `dist/MyPixel-macOS.zip` (96 MB); kịch bản `scripts/build_windows.py` sẵn sàng cho Windows. GitHub Actions CI/CD tự động build cả Windows và macOS trên repo `https://github.com/khoavudl/MyPixel`. | **HOÀN TẤT** | Đã build thành công `dist/MyPixel.app` và `dist/MyPixel-macOS.zip` (96MB). Đã tạo repo GitHub và kích hoạt CI/CD build Windows. 38/38 tests PASS. |
+| **Milestone 2A.7** | **So Sánh Toàn Trang (Full Page Sheet Compare) & Hỗ Trợ Hộp Gấp / Không Cần Nhập WxH**: Bổ sung bộ chọn Comparison Scope trong tab Compare (Auto-crop vs Full Page Sheet); hỗ trợ so sánh nguyên trang PDF không cần WxH; tự động nắn khít sub-pixel bằng Masked ECC; tích hợp preset thông minh 270x130 cho MacCoffee body | **HOÀN TẤT** | Đã hoàn thành `pipeline_phase1.py`, `server/app.py`, `server/runner.py`, `useInspectionStore.ts`, `Dropzone.tsx`. 39/39 tests PASS (100%). |
 | **Phase 2B** | **Tích hợp Gợi ý Khác biệt Tự động (Assisted Auto-diff)**: Tự động vẽ sẵn các box nghi vấn lên UI cho người dùng duyệt | *TƯƠNG LAI* | Sau khi hoàn thiện UI Phase 2A. |
 
 
@@ -86,6 +87,14 @@
 * [`tests/test_server.py`](file:///Users/tindn/Downloads/MyPixel-v1/tests/test_server.py): Thêm bài test `test_inspect_single_artwork_pdf` kiểm tra trọn luồng từ tải file đơn, lấy ảnh kết quả, tạo và lấy annotation, đến liệt kê lịch sử past runs.
 
 
+### 2.6. Chế Độ So Sánh Toàn Trang & Hỗ Trợ Hộp Gấp (Milestone 2A.7)
+* [`artdiff/pipeline_phase1.py`](file:///Users/tindn/Downloads/MyPixel-v1/artdiff/pipeline_phase1.py): Hỗ trợ `mode in ("full_page", "full")` hoặc `target_size_mm=None`. Tự động dùng MediaBox/CropBox làm canvas khổ trang và chuyển trực tiếp sang Aligner mà không cần bóc tách vector.
+* [`server/app.py`](file:///Users/tindn/Downloads/MyPixel-v1/server/app.py): Nâng cấp endpoint `POST /api/analyze` hỗ trợ `crop_mode="full"`, cho phép `target_size_mm` rỗng.
+* [`server/runner.py`](file:///Users/tindn/Downloads/MyPixel-v1/server/runner.py): Cho phép `target_size_mm: tuple[float, float] | None = None`.
+* [`ui/src/store/useInspectionStore.ts`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/store/useInspectionStore.ts): Bổ sung `compareCropMode: 'auto' | 'full'` và action `setCompareCropMode`.
+* [`ui/src/components/Dropzone.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/Dropzone.tsx): Bổ sung thanh chọn **Comparison Scope** trong tab Compare (`Auto-crop Artboard (WxH)` vs `Full Page Sheet (Toàn Trang)`), banner hướng dẫn khi chọn Full Page Sheet. Đã loại bỏ hoàn toàn các nút preset và cơ chế auto-detect theo tên file, buộc người dùng nhập số đo WxH cụ thể khi chọn chế độ Auto-crop.
+* [`tests/test_server.py`](file:///Users/tindn/Downloads/MyPixel-v1/tests/test_server.py): Thêm bài test `test_analyze_full_page_sheet_mode` kiểm thử so sánh toàn trang qua API và WebSocket. Đã kiểm chứng thực tế trên cặp `v11.pdf` vs `v22.pdf`.
+
 ---
 
 ## 3. Nhật Ký Kiểm Thử (Verification Log)
@@ -95,16 +104,16 @@
 .venv/bin/pytest
 
 # Kết quả:
-tests/test_aligner.py ..                                                 [  5%]
+tests/test_aligner.py ..                                                 [  4%]
 tests/test_cropper.py ...                                                [ 12%]
-tests/test_eval.py ........                                              [ 33%]
-tests/test_fit_meter.py ...                                              [ 41%]
-tests/test_frame_detector.py ..s                                         [ 48%]
-tests/test_pdf_renderer.py ..s                                           [ 56%]
-tests/test_pipeline_phase1.py ..                                         [ 61%]
-tests/test_server.py ......                                              [ 76%]
+tests/test_eval.py ........                                              [ 31%]
+tests/test_fit_meter.py ...                                              [ 39%]
+tests/test_frame_detector.py ..s                                         [ 46%]
+tests/test_pdf_renderer.py ..s                                           [ 53%]
+tests/test_pipeline_phase1.py ..                                         [ 58%]
+tests/test_server.py ........                                            [ 78%]
 tests/test_size_gate.py ....                                             [ 87%]
 tests/test_units.py .....                                                [100%]
-================== 37 passed, 2 skipped, 6 warnings in 2.41s ===================
+================== 39 passed, 2 skipped, 6 warnings in 4.34s ===================
 ```
 

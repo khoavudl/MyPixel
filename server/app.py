@@ -78,16 +78,23 @@ async def health_check() -> dict[str, str]:
 async def analyze_artwork(
     brand_file: Annotated[UploadFile, File(...)],
     vendor_file: Annotated[UploadFile, File(...)],
-    target_size_mm: Annotated[str, Form(...)],
+    target_size_mm: Annotated[str, Form()] = "",
     brand_page: Annotated[int, Form()] = 1,
     vendor_page: Annotated[int, Form()] = 1,
     mode: Annotated[str, Form()] = "auto",
+    crop_mode: Annotated[str, Form()] = "auto",
 ) -> AnalyzeResponse:
     """Upload Brand and Vendor PDFs and trigger Phase 1 analysis pipeline in the background."""
-    try:
-        size_tuple = parse_size_mm(target_size_mm)
-    except Exception as exc:
-        raise HTTPException(status_code=400, detail=f"Invalid target size: {str(exc)}")
+    is_full = crop_mode in ("full", "full_page") or not target_size_mm.strip()
+    if is_full:
+        size_tuple = None
+        pipeline_mode = "full_page"
+    else:
+        try:
+            size_tuple = parse_size_mm(target_size_mm)
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail=f"Invalid target size: {str(exc)}")
+        pipeline_mode = mode
 
     run_id = f"run_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S_%f')}"
     run_dir = OUT_DIR / run_id
@@ -111,7 +118,7 @@ async def analyze_artwork(
         target_size_mm=size_tuple,
         brand_page=brand_page,
         vendor_page=vendor_page,
-        mode=mode,
+        mode=pipeline_mode,
     )
 
     return AnalyzeResponse(
