@@ -96,6 +96,7 @@ export const LoadRunModal: React.FC<LoadRunModalProps> = ({ isOpen, onClose }) =
   };
 
   const [deletingRunId, setDeletingRunId] = useState<string | null>(null);
+  const [isDeletingAll, setIsDeletingAll] = useState(false);
 
   const handleDeleteRun = async (run: PastRunSummary) => {
     const confirmed = window.confirm(
@@ -117,6 +118,30 @@ export const LoadRunModal: React.FC<LoadRunModalProps> = ({ isOpen, onClose }) =
       alert(err instanceof Error ? err.message : 'Error deleting run');
     } finally {
       setDeletingRunId(null);
+    }
+  };
+
+  const handleDeleteAllRuns = async () => {
+    if (runs.length === 0) return;
+    const confirmed = window.confirm(
+      `Are you sure you want to delete ALL historical runs (${runs.length} sessions)?\nAll session folders will be moved to the Trash.`
+    );
+    if (!confirmed) return;
+
+    setIsDeletingAll(true);
+    try {
+      const res = await fetch('/api/runs', {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || 'Failed to delete all runs');
+      }
+      setRuns([]);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Error deleting all runs');
+    } finally {
+      setIsDeletingAll(false);
     }
   };
 
@@ -181,9 +206,30 @@ export const LoadRunModal: React.FC<LoadRunModalProps> = ({ isOpen, onClose }) =
               className="w-full pl-9 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
             />
           </div>
-          <span className="text-xs font-mono text-slate-500 shrink-0">
-            {filteredRuns.length} / {runs.length} runs
-          </span>
+          <div className="flex items-center gap-3 shrink-0">
+            <span className="text-xs font-mono text-slate-500">
+              {filteredRuns.length} / {runs.length} runs
+            </span>
+            <button
+              type="button"
+              disabled={isDeletingAll || runs.length === 0}
+              onClick={handleDeleteAllRuns}
+              title="Delete all historical runs (Move all to Trash)"
+              className="px-3 py-1 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 hover:text-red-300 font-semibold text-xs transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {isDeletingAll ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Deleting...</span>
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Delete All</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Body: Run List */}

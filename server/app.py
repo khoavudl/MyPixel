@@ -371,6 +371,30 @@ def send_to_trash(path: Path) -> bool:
     return True
 
 
+@app.delete("/api/runs")
+async def delete_all_runs() -> dict[str, int | str]:
+    """Delete all historical runs and move their folders to the Recycle Bin / Trash."""
+    if not OUT_DIR.is_dir():
+        return {"status": "deleted_all", "count": 0}
+
+    deleted_count = 0
+    errors: list[str] = []
+
+    for run_dir in list(OUT_DIR.iterdir()):
+        if not run_dir.is_dir() or not (run_dir.name.startswith("run_") or run_dir.name.startswith("single_")):
+            continue
+        try:
+            send_to_trash(run_dir)
+            runner.remove_run(run_dir.name)
+            deleted_count += 1
+        except Exception as exc:
+            errors.append(f"{run_dir.name}: {str(exc)}")
+
+    if errors:
+        return {"status": "partial", "count": deleted_count, "errors": "; ".join(errors)}
+    return {"status": "deleted_all", "count": deleted_count}
+
+
 @app.delete("/api/runs/{run_id}")
 async def delete_run(run_id: str) -> dict[str, str]:
     """Delete a historical run and move its folder to the Recycle Bin / Trash."""

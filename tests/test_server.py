@@ -271,6 +271,35 @@ def test_delete_run(client, sample_pdfs):
     assert client.delete("/api/runs/..foo").status_code == 400
 
 
+def test_delete_all_runs(client, sample_pdfs):
+    brand_pdf, _ = sample_pdfs
+    # Create two test single runs
+    with open(brand_pdf, "rb") as f:
+        r1 = client.post(
+            "/api/inspect_single",
+            data={"target_size_mm": "100x80", "page": "1", "crop_mode": "auto"},
+            files={"file": ("to_del1.pdf", f, "application/pdf")},
+        )
+    with open(brand_pdf, "rb") as f:
+        r2 = client.post(
+            "/api/inspect_single",
+            data={"target_size_mm": "100x80", "page": "1", "crop_mode": "auto"},
+            files={"file": ("to_del2.pdf", f, "application/pdf")},
+        )
+    assert r1.status_code == 200
+    assert r2.status_code == 200
+
+    # Delete all runs
+    del_res = client.delete("/api/runs")
+    assert del_res.status_code == 200
+    data = del_res.json()
+    assert data["status"] == "deleted_all"
+    assert data["count"] >= 2
+
+    # Verify runs list is empty
+    assert len(client.get("/api/runs").json()) == 0
+
+
 def test_analyze_full_page_sheet_mode(client, sample_pdfs):
     brand_pdf, vendor_pdf = sample_pdfs
 

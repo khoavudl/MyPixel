@@ -107,6 +107,13 @@
 * [`requirements.txt`](file:///Users/tindn/Downloads/MyPixel-v1/requirements.txt): Bổ sung `pywebview>=5.0.0`.
 * [`tests/test_launcher.py`](file:///Users/tindn/Downloads/MyPixel-v1/tests/test_launcher.py): Kiểm thử tự động 6 bài test cho cấu hình NO_PROXY, phát hiện cổng khả dụng, cờ CLI arguments và tính khả dụng của webview.
 
+### 2.8. Tính Năng Xóa Toàn Bộ Lịch Sử Kiểm Tra - Delete All Historical Runs (Milestone 2A.9)
+* [`server/app.py`](file:///Users/tindn/Downloads/MyPixel-v1/server/app.py): Thêm endpoint `DELETE /api/runs` cho phép xóa sạch toàn bộ các phiên làm việc trong `out/` (chuyển an toàn vào Thùng rác / Trash) và dọn dẹp in-memory runner.
+* [`ui/src/components/Dropzone.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/Dropzone.tsx): Bổ sung nút **"Delete All"** trên thanh công cụ của tab Historical Runs (kèm hộp thoại xác nhận số lượng phiên xóa, hiển thị trạng thái đang xóa và tự động vô hiệu hóa khi danh sách rỗng).
+* [`ui/src/components/LoadRunModal.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/LoadRunModal.tsx): Bổ sung nút **"Delete All"** trên thanh tìm kiếm của modal nạp lịch sử.
+* [`tests/test_server.py`](file:///Users/tindn/Downloads/MyPixel-v1/tests/test_server.py): Thêm bài test `test_delete_all_runs` kiểm thử tạo nhiều phiên và xóa toàn bộ qua API.
+* [`ui/dist`](file:///Users/tindn/Downloads/MyPixel-v1/ui/dist): Đã biên dịch lại bản production bundle thành công (1.41s).
+
 ---
 
 ## 3. Nhật Ký Kiểm Thử (Verification Log)
@@ -119,14 +126,14 @@
 tests/test_aligner.py ..                                                 [  4%]
 tests/test_cropper.py ...                                                [ 10%]
 tests/test_eval.py ........                                              [ 27%]
-tests/test_fit_meter.py ...                                              [ 34%]
-tests/test_frame_detector.py ..s                                         [ 40%]
-tests/test_launcher.py ......                                            [ 53%]
-tests/test_pdf_renderer.py ..s                                           [ 59%]
-tests/test_pipeline_phase1.py ..                                         [ 63%]
-tests/test_server.py ........                                            [ 80%]
+tests/test_fit_meter.py ...                                              [ 33%]
+tests/test_frame_detector.py ..s                                         [ 39%]
+tests/test_launcher.py ......                                            [ 52%]
+tests/test_pdf_renderer.py ..s                                           [ 58%]
+tests/test_pipeline_phase1.py ..                                         [ 62%]
+tests/test_server.py .........                                           [ 81%]
 tests/test_size_gate.py ....                                             [ 89%]
 tests/test_units.py .....                                                [100%]
-================== 45 passed, 2 skipped, 6 warnings in 4.12s ===================
+================== 46 passed, 2 skipped, 6 warnings in 4.57s ===================
 ```
 

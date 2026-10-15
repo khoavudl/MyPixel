@@ -130,6 +130,7 @@ export const Dropzone: React.FC = () => {
 
   // Delete run and move to Recycle Bin
   const [deletingRunId, setDeletingRunId] = useState<string | null>(null);
+  const [isDeletingAll, setIsDeletingAll] = useState(false);
 
   const handleDeletePastRun = async (run: PastRunSummary) => {
     const confirmed = window.confirm(
@@ -151,6 +152,30 @@ export const Dropzone: React.FC = () => {
       alert(err instanceof Error ? err.message : 'Error deleting run');
     } finally {
       setDeletingRunId(null);
+    }
+  };
+
+  const handleDeleteAllPastRuns = async () => {
+    if (pastRuns.length === 0) return;
+    const confirmed = window.confirm(
+      `Are you sure you want to delete ALL historical runs (${pastRuns.length} sessions)?\nAll session folders will be moved to the Trash.`
+    );
+    if (!confirmed) return;
+
+    setIsDeletingAll(true);
+    try {
+      const res = await fetch('/api/runs', {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || 'Failed to delete all runs');
+      }
+      setPastRuns([]);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Error deleting all runs');
+    } finally {
+      setIsDeletingAll(false);
     }
   };
 
@@ -395,6 +420,26 @@ export const Dropzone: React.FC = () => {
                 className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${pastLoading ? 'animate-spin text-blue-400' : ''}`} />
+              </button>
+
+              <button
+                type="button"
+                disabled={isDeletingAll || pastRuns.length === 0}
+                onClick={handleDeleteAllPastRuns}
+                title="Delete all historical runs (Move all to Trash)"
+                className="px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 hover:text-red-300 font-semibold text-xs transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+              >
+                {isDeletingAll ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Delete All</span>
+                  </>
+                )}
               </button>
             </div>
           </div>
