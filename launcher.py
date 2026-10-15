@@ -30,11 +30,69 @@ for key in ("NO_PROXY", "no_proxy"):
     else:
         os.environ[key] = "127.0.0.1,localhost"
 
+
+def unblock_windows_files() -> None:
+    """Remove NTFS Zone.Identifier (Mark of the Web) from files on Windows.
+
+    When users download MyPixel-Windows.zip via a web browser and extract it with
+    Windows Explorer, Windows attaches a Zone.Identifier alternate data stream to all
+    files. The .NET Framework runtime blocks loading unmanaged assemblies like
+    Python.Runtime.dll from the Internet zone unless they are unblocked.
+    """
+    if sys.platform != "win32":
+        return
+
+    check_dirs: list[Path] = []
+    if getattr(sys, "frozen", False):
+        if hasattr(sys, "_MEIPASS"):
+            check_dirs.append(Path(sys._MEIPASS))
+        check_dirs.append(Path(sys.executable).parent)
+
+    for d in check_dirs:
+        try:
+            if not d.is_dir():
+                continue
+            for ext in ("*.dll", "*.exe", "*.pyd"):
+                for p in d.rglob(ext):
+                    try:
+                        zone_path = f"{p}:Zone.Identifier"
+                        if os.path.exists(zone_path):
+                            os.remove(zone_path)
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+
+
+def configure_windows_pythonnet() -> None:
+    """Configure environment for pythonnet inside PyInstaller bundle on Windows."""
+    if sys.platform != "win32":
+        return
+
+    unblock_windows_files()
+
+    if getattr(sys, "frozen", False):
+        py_ver = f"{sys.version_info.major}{sys.version_info.minor}"
+        dll_name = f"python{py_ver}.dll"
+        candidates = []
+        if hasattr(sys, "_MEIPASS"):
+            candidates.append(Path(sys._MEIPASS) / dll_name)
+        candidates.append(Path(sys.executable).parent / "_internal" / dll_name)
+        candidates.append(Path(sys.executable).parent / dll_name)
+        for cand in candidates:
+            if cand.is_file():
+                os.environ.setdefault("PYTHONNET_PYDLL", str(cand))
+                break
+
+
+# Prepare Windows pythonnet environment before importing webview
+configure_windows_pythonnet()
+
 # Try importing pywebview for native desktop window
 try:
     import webview
     HAS_WEBVIEW = True
-except ImportError:
+except (ImportError, Exception):
     HAS_WEBVIEW = False
 
 
@@ -204,17 +262,23 @@ def main() -> None:
             sys.exit(0)
         else:
             print("Opening native desktop window...")
-            webview.settings["ALLOW_DOWNLOADS"] = True
-            webview.create_window(
-                title="MyPixel - Packaging Artwork Inspection",
-                url=app_url,
-                width=1440,
-                height=920,
-                min_size=(1024, 700),
-                text_select=True,
-            )
-            webview.start()
-            sys.exit(0)
+            try:
+                webview.settings["ALLOW_DOWNLOADS"] = True
+                webview.create_window(
+                    title="MyPixel - Packaging Artwork Inspection",
+                    url=app_url,
+                    width=1440,
+                    height=920,
+                    min_size=(1024, 700),
+                    text_select=True,
+                )
+                webview.start()
+                sys.exit(0)
+            except Exception as exc:
+                print(f"Warning: Failed to launch native desktop window ({exc}).")
+                print("Falling back to default web browser...")
+                webbrowser.open(app_url)
+                sys.exit(0)
 
     # 2. If port is not available, find next available port
     if not is_port_available(target_port, host=target_host):

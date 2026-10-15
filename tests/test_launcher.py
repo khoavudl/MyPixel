@@ -55,3 +55,40 @@ def test_parse_arguments(monkeypatch):
 def test_has_webview():
     """Verify pywebview is available in the virtualenv."""
     assert HAS_WEBVIEW is True
+
+
+def test_unblock_windows_files(tmp_path, monkeypatch):
+    """Verify unblock_windows_files removes Zone.Identifier stream on Windows."""
+    from launcher import unblock_windows_files
+    import sys
+
+    monkeypatch.setattr(sys, "platform", "win32")
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.setattr(sys, "_MEIPASS", str(tmp_path), raising=False)
+
+    dll_file = tmp_path / "test.dll"
+    dll_file.write_text("dummy")
+    zone_file = tmp_path / "test.dll:Zone.Identifier"
+    zone_file.write_text("[ZoneTransfer]\nZoneId=3")
+
+    assert zone_file.exists()
+    unblock_windows_files()
+    assert not zone_file.exists()
+
+
+def test_configure_windows_pythonnet(tmp_path, monkeypatch):
+    """Verify configure_windows_pythonnet finds python DLL in frozen bundle."""
+    from launcher import configure_windows_pythonnet
+    import sys
+
+    monkeypatch.setattr(sys, "platform", "win32")
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.setattr(sys, "_MEIPASS", str(tmp_path), raising=False)
+
+    py_ver = f"{sys.version_info.major}{sys.version_info.minor}"
+    fake_dll = tmp_path / f"python{py_ver}.dll"
+    fake_dll.write_text("fake dll")
+
+    monkeypatch.delenv("PYTHONNET_PYDLL", raising=False)
+    configure_windows_pythonnet()
+    assert os.environ.get("PYTHONNET_PYDLL") == str(fake_dll)

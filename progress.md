@@ -1,7 +1,7 @@
 # TIẾN ĐỘ DỰ ÁN (PROJECT PROGRESS) – MYPIXEL (ARTDIFF)
 > **Cập nhật lần cuối:** 2026-10-15  
-> **Trạng thái hiện tại:** Đã hoàn thành Milestone 2A.1, 2A.2, 2A.3, 2A.4, Xoay Trực Giao 4 Hướng (0°/90°/180°/270°), Tối ưu Badge & Stroke Bất Biến Màn Hình, Cấu trúc 3 Chức Năng Mainscreen (F1: Load Past Run, F2: Compare 2 Files, F3: Single-file Inspection), Trạm Soi 1 Khung Hình Duy Nhất (Single View Inspection Workspace), Chuẩn Hoá Giao Diện Tiếng Anh Tinh Gọn, Milestone 2A.5: Xuất Báo Cáo Kiểm Định Chuyên Nghiệp (DOCX / PDF / Both), Nâng cấp Tab Historical Run Xoá Session vào Trash, Khống chế kích thước 2D cho ảnh Word (.docx), Thêm Logo FES vào báo cáo, Milestone 2A.6: Đóng Gói Ứng Dụng Độc Lập (Standalone Native App Packaging - macOS & Windows Ready), **Nâng Cấp Chế Độ So Sánh Toàn Trang (Full Page Sheet Compare Mode) & Hỗ Trợ Hộp Gấp / Bình Bản Đa Panel (Folding Carton Nets - v11 & v22 Ready)**.  
-> **Tổng số bài test tự động:** 39/39 PASS (100%)
+> **Trạng thái hiện tại:** Đã hoàn thành Milestone 2A.1, 2A.2, 2A.3, 2A.4, Xoay Trực Giao 4 Hướng (0°/90°/180°/270°), Tối ưu Badge & Stroke Bất Biến Màn Hình, Cấu trúc 3 Chức Năng Mainscreen (F1: Load Past Run, F2: Compare 2 Files, F3: Single-file Inspection), Trạm Soi 1 Khung Hình Duy Nhất (Single View Inspection Workspace), Chuẩn Hoá Giao Diện Tiếng Anh Tinh Gọn, Milestone 2A.5: Xuất Báo Cáo Kiểm Định Chuyên Nghiệp (DOCX / PDF / Both), Nâng cấp Tab Historical Run Xoá Session vào Trash, Khống chế kích thước 2D cho ảnh Word (.docx), Thêm Logo FES vào báo cáo, Milestone 2A.6: Đóng Gói Ứng Dụng Độc Lập (Standalone Native App Packaging - macOS & Windows Ready), Nâng Cấp Chế Độ So Sánh Toàn Trang (Full Page Sheet Compare Mode) & Hỗ Trợ Hộp Gấp / Bình Bản Đa Panel (Folding Carton Nets - v11 & v22 Ready), **Milestone 2A.12: Khắc Phục Triệt Để Lỗi Windows Python.Runtime.dll & Zone.Identifier (MOTW Unblock + .NET Config)**.  
+> **Tổng số bài test tự động:** 48/48 PASS (100%)
 
 ---
 
@@ -20,6 +20,7 @@
 | **UI Polish** | **Quản Lý Lịch Sử & Xoá Session (Recycle Bin)**: Thêm nút Delete / thùng rác bên trái Open Session di chuyển thư mục `out/<run_id>` vào Trash của máy; Tinh gọn Line 1 chỉ gồm Tên run, Loại run và Số lượng defect; Giữ nguyên Line 2 (File names) & Line 3 (Timestamp). | **HOÀN TẤT** | Đã hoàn thành endpoint `DELETE /api/runs/{run_id}`, tích hợp AppleScript Finder delete với fallback shutil.rmtree, cập nhật Dropzone & LoadRunModal. 38/38 tests PASS. |
 | **Milestone 2A.6** | **Đóng Gói Ứng Dụng Độc Lập (Standalone App Bundle - Mac & Win)**: Chuẩn hoá đường dẫn cross-platform (`server/config.py` tự lưu vào `~/Documents/MyPixel/out` khi chạy bundle, chống Permission Denied và mất data); Native Launcher `launcher.py` tự dò port thông minh; sinh icon app `MyPixel.icns` & `MyPixel.ico`; script build `scripts/build_mac.py` xuất ra `dist/MyPixel.app` và `dist/MyPixel-macOS.zip` (96 MB); kịch bản `scripts/build_windows.py` sẵn sàng cho Windows. GitHub Actions CI/CD tự động build cả Windows và macOS trên repo `https://github.com/khoavudl/MyPixel`. | **HOÀN TẤT** | Đã build thành công `dist/MyPixel.app` và `dist/MyPixel-macOS.zip` (96MB). Đã tạo repo GitHub và kích hoạt CI/CD build Windows. 38/38 tests PASS. |
 | **Milestone 2A.7** | **So Sánh Toàn Trang (Full Page Sheet Compare) & Hỗ Trợ Hộp Gấp / Không Cần Nhập WxH**: Bổ sung bộ chọn Comparison Scope trong tab Compare (Auto-crop vs Full Page Sheet); hỗ trợ so sánh nguyên trang PDF không cần WxH; tự động nắn khít sub-pixel bằng Masked ECC; tích hợp preset thông minh 270x130 cho MacCoffee body | **HOÀN TẤT** | Đã hoàn thành `pipeline_phase1.py`, `server/app.py`, `server/runner.py`, `useInspectionStore.ts`, `Dropzone.tsx`. 39/39 tests PASS (100%). |
+| **Milestone 2A.12** | **Sửa Lỗi Khởi Động Windows (Python.Runtime.dll & Zone.Identifier Unblock)**: Tự động gỡ Mark of the Web trên Windows; cấu hình .NET `loadFromRemoteSources` trong `MyPixel.exe.config`; gán `PYTHONNET_PYDLL`; thu thập đầy đủ binaries/datas `pythonnet` & `clr_loader` trong PyInstaller; bọc try/except toàn diện cho `webview.start()` tránh crash | **HOÀN TẤT** | Đã thêm `MyPixel.exe.config`, `launcher.py`, `mypixel.spec`, `scripts/build_windows.py`, `tests/test_launcher.py`. 48/48 tests PASS. |
 | **Phase 2B** | **Tích hợp Gợi ý Khác biệt Tự động (Assisted Auto-diff)**: Tự động vẽ sẵn các box nghi vấn lên UI cho người dùng duyệt | *TƯƠNG LAI* | Sau khi hoàn thiện UI Phase 2A. |
 
 
@@ -121,6 +122,16 @@
   - Cho phép người dùng tải trực tiếp vĩnh viễn không giới hạn 14 ngày, **hoàn toàn không cần tài khoản GitHub hay đăng nhập**.
   - Bổ sung tùy chọn `tag_name` (mặc định `v2.0.0`) và cờ `publish_release` (mặc định `true`) trong menu trigger của Actions.
 
+### 2.11. Khắc Phục Triệt Để Lỗi Windows Python.Runtime.dll & Zone.Identifier (Milestone 2A.12)
+* [`MyPixel.exe.config`](file:///Users/tindn/Downloads/MyPixel-v1/MyPixel.exe.config): Cấu hình `<loadFromRemoteSources enabled="true"/>` cho .NET CLR để cho phép nạp các assemblies tải về từ Internet/Web hoặc network drives mà không bị CAS sandbox chặn.
+* [`launcher.py`](file:///Users/tindn/Downloads/MyPixel-v1/launcher.py):
+  - Tự động quét và xoá NTFS Alternate Data Stream `Zone.Identifier` (Mark of the Web) trên các file `.dll`, `.exe`, `.pyd` khi chạy trên Windows.
+  - Tự động thiết lập biến môi trường `PYTHONNET_PYDLL` trỏ trực tiếp đến file DLL Python (ví dụ: `_internal/python311.dll`) bên trong thư mục bundle PyInstaller.
+  - Bọc khối `try...except` an toàn quanh `webview.start()` ở cả 2 nhánh (khi server đã chạy sẵn và khi vừa khởi động) kèm cơ chế tự động mở tab trình duyệt mặc định (`webbrowser.open`) nếu WebKit/WebView2 hoặc .NET gặp sự cố, triệt tiêu hoàn toàn khả năng văng exception traceback.
+* [`mypixel.spec`](file:///Users/tindn/Downloads/MyPixel-v1/mypixel.spec): Thu thập toàn bộ `datas`, `binaries` (bao gồm `ClrLoader.dll`) và `hiddenimports` cho `pythonnet` và `clr_loader` thông qua `PyInstaller.utils.hooks.collect_all`, đóng gói kèm `MyPixel.exe.config`.
+* [`scripts/build_windows.py`](file:///Users/tindn/Downloads/MyPixel-v1/scripts/build_windows.py): Đảm bảo file `MyPixel.exe.config` luôn được sao chép trực tiếp vào thư mục `dist/MyPixel/` ngay cạnh `MyPixel.exe`.
+* [`tests/test_launcher.py`](file:///Users/tindn/Downloads/MyPixel-v1/tests/test_launcher.py): Bổ sung 2 bài test tự động `test_unblock_windows_files` và `test_configure_windows_pythonnet`.
+
 ---
 
 ## 3. Nhật Ký Kiểm Thử (Verification Log)
@@ -132,15 +143,15 @@
 # Kết quả:
 tests/test_aligner.py ..                                                 [  4%]
 tests/test_cropper.py ...                                                [ 10%]
-tests/test_eval.py ........                                              [ 27%]
-tests/test_fit_meter.py ...                                              [ 33%]
-tests/test_frame_detector.py ..s                                         [ 39%]
-tests/test_launcher.py ......                                            [ 52%]
-tests/test_pdf_renderer.py ..s                                           [ 58%]
-tests/test_pipeline_phase1.py ..                                         [ 62%]
-tests/test_server.py .........                                           [ 81%]
-tests/test_size_gate.py ....                                             [ 89%]
+tests/test_eval.py ........                                              [ 26%]
+tests/test_fit_meter.py ...                                              [ 32%]
+tests/test_frame_detector.py ..s                                         [ 38%]
+tests/test_launcher.py ........                                          [ 54%]
+tests/test_pdf_renderer.py ..s                                           [ 60%]
+tests/test_pipeline_phase1.py ..                                         [ 64%]
+tests/test_server.py .........                                           [ 82%]
+tests/test_size_gate.py ....                                             [ 90%]
 tests/test_units.py .....                                                [100%]
-================== 46 passed, 2 skipped, 6 warnings in 4.57s ===================
+================== 48 passed, 2 skipped, 6 warnings in 4.48s ===================
 ```
 

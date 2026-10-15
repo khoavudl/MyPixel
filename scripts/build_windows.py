@@ -47,6 +47,12 @@ def build_app() -> Path:
         print(f"Error: Expected executable at {exe_path} was not created.")
         sys.exit(1)
 
+    # Ensure MyPixel.exe.config is placed next to MyPixel.exe
+    config_src = ROOT_DIR / "MyPixel.exe.config"
+    if config_src.is_file():
+        shutil.copy2(config_src, dist_folder / "MyPixel.exe.config")
+        print(f"Copied .NET runtime config to {dist_folder / 'MyPixel.exe.config'}")
+
     # Create zip archive for easy distribution
     zip_path = DIST_DIR / "MyPixel-Windows.zip"
     print(f"Creating portable zip distribution: {zip_path}...")

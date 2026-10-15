@@ -49,13 +49,27 @@ hiddenimports = [
     "webview.platforms.edgechromium",
 ]
 
+binaries = []
+
 if sys.platform == "win32":
-    hiddenimports += ["clr", "clr_loader", "pythonnet"]
+    hiddenimports += ["clr", "clr_loader", "pythonnet", "cffi"]
+    try:
+        from PyInstaller.utils.hooks import collect_all
+        for pkg in ("pythonnet", "clr_loader"):
+            pkg_datas, pkg_binaries, pkg_hiddenimports = collect_all(pkg)
+            datas += pkg_datas
+            binaries += pkg_binaries
+            hiddenimports += pkg_hiddenimports
+    except Exception:
+        pass
+    config_file = os.path.join(ROOT_DIR, "MyPixel.exe.config")
+    if os.path.exists(config_file):
+        datas.append((config_file, "."))
 
 a = Analysis(
     ['launcher.py'],
     pathex=[ROOT_DIR],
-    binaries=[],
+    binaries=binaries,
     datas=datas,
     hiddenimports=hiddenimports,
     hookspath=[],
