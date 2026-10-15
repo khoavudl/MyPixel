@@ -295,7 +295,7 @@ export const Dropzone: React.FC = () => {
           <span>Pre-press Packaging Verification Studio</span>
         </div>
         <h1 className="text-3xl font-extrabold text-white tracking-tight sm:text-4xl">
-          Packaging QA Studio
+          Brand Innovation Studio
         </h1>
       </div>
 

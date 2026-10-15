@@ -43,6 +43,10 @@ hiddenimports = [
     "pydantic_core",
     "multipart",
     "python_multipart",
+    "webview",
+    "webview.platforms.cocoa",
+    "webview.platforms.winforms",
+    "webview.platforms.edgechromium",
 ]
 
 a = Analysis(

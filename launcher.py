@@ -1,11 +1,16 @@
 """Native Launcher for MyPixel (ArtDiff).
 
-Starts the local FastAPI server and automatically opens the user's default browser.
+Starts the local FastAPI server and launches either:
+- A native desktop window (via PyWebView / WebKit / WebView2) - Default
+- Or the user's default web browser (via --browser flag or fallback)
+
+Includes proxy bypass for 127.0.0.1/localhost to prevent corporate proxy interference.
 Supports macOS and Windows seamlessly.
 """
 
 from __future__ import annotations
 
+import argparse
 from copy import deepcopy
 import os
 from pathlib import Path
@@ -15,6 +20,23 @@ import threading
 import time
 import urllib.request
 import webbrowser
+
+# Bypass proxy for loopback addresses to avoid corporate proxy/security intercepting local API
+for key in ("NO_PROXY", "no_proxy"):
+    current = os.environ.get(key, "")
+    if current:
+        if "127.0.0.1" not in current:
+            os.environ[key] = f"127.0.0.1,localhost,{current}"
+    else:
+        os.environ[key] = "127.0.0.1,localhost"
+
+# Try importing pywebview for native desktop window
+try:
+    import webview
+    HAS_WEBVIEW = True
+except ImportError:
+    HAS_WEBVIEW = False
+
 
 # Ensure sys.stdout and sys.stderr are valid stream objects with isatty() support.
 # In PyInstaller windowed mode (console=False on Windows), sys.stdout/stderr are None,
@@ -89,8 +111,8 @@ def is_mypixel_running(port: int = DEFAULT_PORT, host: str = DEFAULT_HOST) -> bo
         return False
 
 
-def wait_and_open_browser(url: str, timeout: float = 10.0) -> None:
-    """Wait until the backend server responds to /api/health, then open browser."""
+def wait_for_server(url: str, timeout: float = 15.0) -> bool:
+    """Wait until the backend server responds with status 200 on /api/health."""
     start_time = time.time()
     health_url = f"{url.rstrip('/')}/api/health"
 
@@ -99,13 +121,16 @@ def wait_and_open_browser(url: str, timeout: float = 10.0) -> None:
             req = urllib.request.Request(health_url, headers={"User-Agent": "MyPixel-Launcher"})
             with urllib.request.urlopen(req, timeout=0.8) as resp:
                 if resp.status == 200:
-                    time.sleep(0.3)
-                    webbrowser.open(url)
-                    return
+                    return True
         except Exception:
-            time.sleep(0.3)
+            time.sleep(0.2)
+    return False
 
-    # Fallback: open anyway if timeout reached
+
+def wait_and_open_browser(url: str, timeout: float = 10.0) -> None:
+    """Wait until the backend server responds to /api/health, then open browser."""
+    wait_for_server(url, timeout=timeout)
+    time.sleep(0.3)
     webbrowser.open(url)
 
 
@@ -117,33 +142,8 @@ def find_available_port(start_port: int = DEFAULT_PORT, max_attempts: int = 20) 
     return start_port
 
 
-def main() -> None:
-    """Launcher entry point."""
-    target_port = DEFAULT_PORT
-
-    # 1. If port 8000 is already running MyPixel, simply bring up the browser and exit
-    if is_mypixel_running(target_port):
-        print(f"MyPixel is already running on http://{DEFAULT_HOST}:{target_port}. Opening browser...")
-        webbrowser.open(f"http://{DEFAULT_HOST}:{target_port}")
-        sys.exit(0)
-
-    # 2. If port 8000 is not available (occupied or not bindable), find the next free port
-    if not is_port_available(target_port):
-        target_port = find_available_port(start_port=8001)
-
-    app_url = f"http://{DEFAULT_HOST}:{target_port}"
-    print(f"Starting MyPixel server at {app_url}...")
-
-    # 3. Launch browser opener in background thread
-    opener_thread = threading.Thread(
-        target=wait_and_open_browser,
-        args=(app_url,),
-        daemon=True,
-    )
-    opener_thread.start()
-
-    # 4. Start uvicorn server in main thread
-    # Import the FastAPI app directly so PyInstaller bundles it reliably
+def create_uvicorn_server(host: str, port: int) -> uvicorn.Server:
+    """Build configured Uvicorn server instance."""
     from server.app import app
 
     safe_log_config = deepcopy(LOGGING_CONFIG)
@@ -152,15 +152,113 @@ def main() -> None:
 
     config = uvicorn.Config(
         app=app,
-        host=DEFAULT_HOST,
-        port=target_port,
+        host=host,
+        port=port,
         log_level="info",
         access_log=False,
         use_colors=False,
         log_config=safe_log_config,
     )
-    server = uvicorn.Server(config)
-    server.run()
+    return uvicorn.Server(config)
+
+
+def parse_arguments() -> argparse.Namespace:
+    """Parse command-line arguments."""
+    parser = argparse.ArgumentParser(description="MyPixel Packaging Artwork Inspection Launcher")
+    parser.add_argument(
+        "--browser",
+        action="store_true",
+        default=os.environ.get("MYPIXEL_USE_BROWSER", "0") in ("1", "true", "True"),
+        help="Launch in default web browser instead of native desktop window",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=DEFAULT_PORT,
+        help=f"Port to run MyPixel server on (default: {DEFAULT_PORT})",
+    )
+    parser.add_argument(
+        "--host",
+        type=str,
+        default=DEFAULT_HOST,
+        help=f"Host to bind MyPixel server on (default: {DEFAULT_HOST})",
+    )
+    args, _ = parser.parse_known_args()
+    return args
+
+
+def main() -> None:
+    """Launcher entry point."""
+    args = parse_arguments()
+    target_host = args.host
+    target_port = args.port
+    use_browser = args.browser or not HAS_WEBVIEW
+
+    # 1. If port is already running MyPixel
+    if is_mypixel_running(target_port, host=target_host):
+        app_url = f"http://{target_host}:{target_port}"
+        print(f"MyPixel is already running on {app_url}.")
+        if use_browser:
+            print("Opening in default browser...")
+            webbrowser.open(app_url)
+            sys.exit(0)
+        else:
+            print("Opening native desktop window...")
+            webview.settings["ALLOW_DOWNLOADS"] = True
+            webview.create_window(
+                title="MyPixel - Packaging Artwork Inspection",
+                url=app_url,
+                width=1440,
+                height=920,
+                min_size=(1024, 700),
+                text_select=True,
+            )
+            webview.start()
+            sys.exit(0)
+
+    # 2. If port is not available, find next available port
+    if not is_port_available(target_port, host=target_host):
+        target_port = find_available_port(start_port=target_port + 1)
+
+    app_url = f"http://{target_host}:{target_port}"
+    print(f"Starting MyPixel server at {app_url}...")
+
+    if use_browser:
+        # Browser Mode: background thread opens browser, main thread runs Uvicorn
+        opener_thread = threading.Thread(
+            target=wait_and_open_browser,
+            args=(app_url,),
+            daemon=True,
+        )
+        opener_thread.start()
+        server = create_uvicorn_server(target_host, target_port)
+        server.run()
+    else:
+        # Desktop Native Mode: background thread runs Uvicorn, main thread runs PyWebView
+        server = create_uvicorn_server(target_host, target_port)
+        server_thread = threading.Thread(target=server.run, daemon=True)
+        server_thread.start()
+
+        # Wait until backend is ready before rendering window
+        if not wait_for_server(app_url, timeout=15.0):
+            print("Warning: Backend health check timed out. Attempting to open window anyway...")
+
+        webview.settings["ALLOW_DOWNLOADS"] = True
+        webview.create_window(
+            title="MyPixel - Packaging Artwork Inspection",
+            url=app_url,
+            width=1440,
+            height=920,
+            min_size=(1024, 700),
+            text_select=True,
+        )
+        try:
+            webview.start()
+        finally:
+            print("Closing MyPixel server...")
+            server.should_exit = True
+            server_thread.join(timeout=2.0)
+            sys.exit(0)
 
 
 if __name__ == "__main__":

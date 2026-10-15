@@ -47,7 +47,7 @@
 ### 2.3. Frontend Client (`ui/`)
 * [`ui/src/types/index.ts`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/types/index.ts): Khớp 1-1 với Pydantic schemas của Backend, bổ sung `PastRunSummary`.
 * [`ui/src/store/useInspectionStore.ts`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/store/useInspectionStore.ts): Central Zustand store quản lý state toàn cục (viewport, zoom, pan, sync, flicker, annotations, loupeScaleFactor).
-* [`ui/src/components/Dropzone.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/Dropzone.tsx): Kéo thả 2 file PDF Brand & Vendor, tự động nhận diện khổ file (`v1/v2` -> `217x200.5`, `brand/vendor` -> `620x250`), nút mở lịch sử kiểm định (Load Past Run).
+* [`ui/src/components/Dropzone.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/Dropzone.tsx): Giao diện Main Screen "Brand Innovation Studio": Kéo thả 2 file PDF Brand & Vendor, tự động nhận diện khổ file (`v1/v2` -> `217x200.5`, `brand/vendor` -> `620x250`), nút mở lịch sử kiểm định (Load Past Run).
 * [`ui/src/components/LoadRunModal.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/LoadRunModal.tsx): Hộp thoại tìm kiếm và nạp trực tiếp phiên kiểm định cũ từ thư mục `out/`, tự động khôi phục ảnh 4 khung và toàn bộ Bounding Box lỗi để vào thẳng Workspace trong 0.1s.
 * [`ui/src/components/LogConsole.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/LogConsole.tsx): Terminal log thời gian thực qua WebSocket, thanh tiến trình, 6 pill trạng thái cho 6 task, banner gợi ý sửa lỗi khi lệch khổ kích thước.
 * [`ui/src/hooks/useSyncedViewport.ts`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/hooks/useSyncedViewport.ts): Hook đồng bộ Pan & Zoom to cursor mượt mà giữa các khung hình qua CSS GPU transform.
@@ -95,25 +95,38 @@
 * [`ui/src/components/Dropzone.tsx`](file:///Users/tindn/Downloads/MyPixel-v1/ui/src/components/Dropzone.tsx): Bổ sung thanh chọn **Comparison Scope** trong tab Compare (`Auto-crop Artboard (WxH)` vs `Full Page Sheet (Toàn Trang)`), banner hướng dẫn khi chọn Full Page Sheet. Đã loại bỏ hoàn toàn các nút preset và cơ chế auto-detect theo tên file, buộc người dùng nhập số đo WxH cụ thể khi chọn chế độ Auto-crop.
 * [`tests/test_server.py`](file:///Users/tindn/Downloads/MyPixel-v1/tests/test_server.py): Thêm bài test `test_analyze_full_page_sheet_mode` kiểm thử so sánh toàn trang qua API và WebSocket. Đã kiểm chứng thực tế trên cặp `v11.pdf` vs `v22.pdf`.
 
+### 2.7. Native Desktop Window & Corporate Proxy Bypass (Milestone 2A.8)
+* [`launcher.py`](file:///Users/tindn/Downloads/MyPixel-v1/launcher.py):
+  - Tự động thiết lập cấu hình bypass proxy loopback `NO_PROXY=127.0.0.1,localhost` và `no_proxy` ngay khi khởi động, triệt tiêu hoàn toàn lỗi corporate security/proxy chặn kết nối local (`Direct IP access is not allowed`).
+  - Hỗ trợ Native Desktop Window mặc định qua thư viện `pywebview` (dùng native Apple WebKit WKWebView trên macOS, Microsoft Edge WebView2 trên Windows).
+  - Tích hợp cờ `--browser` để fallback sang chế độ mở tab trình duyệt ngoài khi người dùng có nhu cầu.
+  - Tự động bật `ALLOW_DOWNLOADS = True` để hỗ trợ xuất báo cáo kiểm định PDF/HTML/Word trực tiếp trong cửa sổ ứng dụng.
+  - Quản lý vòng đời tiến trình sạch sẽ: Khi bấm nút [X] đóng cửa sổ native, tự động gửi tín hiệu dừng Uvicorn backend và giải phóng tài nguyên.
+* [`run_desktop.py`](file:///Users/tindn/Downloads/MyPixel-v1/run_desktop.py): File shortcut tiện ích để khởi động trực tiếp MyPixel ở chế độ Desktop Window (`python run_desktop.py`).
+* [`mypixel.spec`](file:///Users/tindn/Downloads/MyPixel-v1/mypixel.spec): Bổ sung `hiddenimports` cho `webview` và các nền tảng native (Cocoa, WinForms, EdgeChromium) để đóng gói `MyPixel.app` hoặc `MyPixel.exe`.
+* [`requirements.txt`](file:///Users/tindn/Downloads/MyPixel-v1/requirements.txt): Bổ sung `pywebview>=5.0.0`.
+* [`tests/test_launcher.py`](file:///Users/tindn/Downloads/MyPixel-v1/tests/test_launcher.py): Kiểm thử tự động 6 bài test cho cấu hình NO_PROXY, phát hiện cổng khả dụng, cờ CLI arguments và tính khả dụng của webview.
+
 ---
 
 ## 3. Nhật Ký Kiểm Thử (Verification Log)
 
 ```bash
 # Lệnh chạy toàn bộ test:
-.venv/bin/pytest
+.venv/bin/pytest tests/
 
 # Kết quả:
 tests/test_aligner.py ..                                                 [  4%]
-tests/test_cropper.py ...                                                [ 12%]
-tests/test_eval.py ........                                              [ 31%]
-tests/test_fit_meter.py ...                                              [ 39%]
-tests/test_frame_detector.py ..s                                         [ 46%]
-tests/test_pdf_renderer.py ..s                                           [ 53%]
-tests/test_pipeline_phase1.py ..                                         [ 58%]
-tests/test_server.py ........                                            [ 78%]
-tests/test_size_gate.py ....                                             [ 87%]
+tests/test_cropper.py ...                                                [ 10%]
+tests/test_eval.py ........                                              [ 27%]
+tests/test_fit_meter.py ...                                              [ 34%]
+tests/test_frame_detector.py ..s                                         [ 40%]
+tests/test_launcher.py ......                                            [ 53%]
+tests/test_pdf_renderer.py ..s                                           [ 59%]
+tests/test_pipeline_phase1.py ..                                         [ 63%]
+tests/test_server.py ........                                            [ 80%]
+tests/test_size_gate.py ....                                             [ 89%]
 tests/test_units.py .....                                                [100%]
-================== 39 passed, 2 skipped, 6 warnings in 4.34s ===================
+================== 45 passed, 2 skipped, 6 warnings in 4.12s ===================
 ```
 
