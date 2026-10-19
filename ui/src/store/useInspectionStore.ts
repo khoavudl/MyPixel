@@ -1,17 +1,19 @@
 import { create } from 'zustand';
 import {
   ActiveTool,
+  CompareCropMode,
   DefectBox,
   InspectionType,
   LogMessage,
   MainFunctionTab,
+  ManualAlignPrepareData,
   RotationAngle,
   RunStatusResponse,
   ViewportTransform,
 } from '../types';
 import { canonicalToScreen, getDisplayedDimensions } from '../utils/coordinateTransform';
 
-export type AppViewMode = 'setup' | 'console' | 'workspace';
+export type AppViewMode = 'setup' | 'console' | 'workspace' | 'manual_align';
 
 interface InspectionState {
   // Navigation / Main screen functions
@@ -24,7 +26,8 @@ interface InspectionState {
   targetSizeMm: string;
   brandPage: number;
   vendorPage: number;
-  compareCropMode: 'auto' | 'full';
+  compareCropMode: CompareCropMode;
+  manualAlignData: ManualAlignPrepareData | null;
 
   // Function 3: Setup inputs (Single Inspection)
   singleFile: File | null;
@@ -64,7 +67,8 @@ interface InspectionState {
   setTargetSizeMm: (size: string) => void;
   setBrandPage: (page: number) => void;
   setVendorPage: (page: number) => void;
-  setCompareCropMode: (mode: 'auto' | 'full') => void;
+  setCompareCropMode: (mode: CompareCropMode) => void;
+  setManualAlignData: (data: ManualAlignPrepareData | null) => void;
   setSingleFile: (file: File | null) => void;
   setSinglePage: (page: number) => void;
   setSingleTargetSizeMm: (size: string) => void;
@@ -127,6 +131,7 @@ export const useInspectionStore = create<InspectionState>((set) => ({
   logs: [],
   runStatus: null,
   viewMode: 'setup',
+  manualAlignData: null,
 
   activeTool: 'pan',
   viewport: defaultViewport,
@@ -151,6 +156,7 @@ export const useInspectionStore = create<InspectionState>((set) => ({
   setBrandPage: (page) => set({ brandPage: page }),
   setVendorPage: (page) => set({ vendorPage: page }),
   setCompareCropMode: (mode) => set({ compareCropMode: mode }),
+  setManualAlignData: (data) => set({ manualAlignData: data }),
   setSingleFile: (file) => set({ singleFile: file }),
   setSinglePage: (page) => set({ singlePage: page }),
   setSingleTargetSizeMm: (size) => set({ singleTargetSizeMm: size }),
@@ -286,6 +292,7 @@ export const useInspectionStore = create<InspectionState>((set) => ({
       logs: [],
       runStatus: null,
       viewMode: 'setup',
+      manualAlignData: null,
       viewport: defaultViewport,
       annotations: [],
       selectedBoxId: null,

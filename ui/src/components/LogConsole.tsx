@@ -6,6 +6,7 @@ import {
   Loader2,
   ArrowRight,
   RotateCcw,
+  Sliders,
 } from 'lucide-react';
 import { useInspectionStore } from '../store/useInspectionStore';
 import { LogMessage } from '../types';
@@ -27,6 +28,7 @@ export const LogConsole: React.FC = () => {
     setRunStatus,
     setViewMode,
     setIsAnalyzing,
+    setManualAlignData,
   } = useInspectionStore();
 
   const [activeTaskId, setActiveTaskId] = useState<string>('task1_render');
@@ -113,6 +115,28 @@ export const LogConsole: React.FC = () => {
 
     return () => clearTimeout(timer);
   }, [autoRedirectTimer, setViewMode]);
+
+  const [isSwitchingManual, setIsSwitchingManual] = useState(false);
+
+  const handleSwitchToManual = async () => {
+    if (!runId) return;
+    setIsSwitchingManual(true);
+    try {
+      const res = await fetch(`/api/manual_align/prepare/${runId}`);
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.detail || 'Không thể chuẩn bị dữ liệu căn chỉnh thủ công');
+      }
+      const data = await res.json();
+      setManualAlignData(data);
+      setViewMode('manual_align');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      alert('Lỗi: ' + msg);
+    } finally {
+      setIsSwitchingManual(false);
+    }
+  };
 
   const progressPercentage = Math.round(
     (completedTasks.size / PIPELINE_TASKS.length) * 100
@@ -248,17 +272,36 @@ export const LogConsole: React.FC = () => {
           )}
         </div>
 
-        {/* Failure Explanation Banner */}
+        {/* Failure Explanation Banner with Smart Action Button */}
         {isFailed && (
-          <div className="bg-red-950/40 border-t border-red-500/30 px-6 py-3.5 flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
-            <div className="text-xs text-red-200 leading-relaxed">
-              <div className="font-bold text-red-300 mb-0.5">Pipeline halted: Target trim size mismatch</div>
-              <span>
-                Target trim frame not found in PDF.
-                If inspecting Kracks files (<b>v1.pdf / v2.pdf</b>), click <b>"Back to Setup"</b> below and select the <b>217 × 200.5 (Kracks)</b> preset.
-              </span>
+          <div className="bg-red-950/40 border-t border-red-500/30 px-6 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+              <div className="text-xs text-red-200 leading-relaxed">
+                <div className="font-bold text-red-300 mb-0.5">Pipeline dừng lại: Không tự động chốt được khung hoặc lệch kích thước</div>
+                <span>
+                  Hệ thống không tìm thấy khung hoặc độ tin cậy chưa đạt 90%. Bạn có thể bấm nút bên phải để <b>Căn Chỉnh Thủ Công (Manual Align)</b> kéo thả 2 bản vẽ bằng mắt.
+                </span>
+              </div>
             </div>
+
+            <button
+              onClick={handleSwitchToManual}
+              disabled={isSwitchingManual}
+              className="px-4 py-2.5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-amber-600/30 flex items-center gap-2 cursor-pointer transition-transform hover:scale-105 shrink-0"
+            >
+              {isSwitchingManual ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Đang nạp dữ liệu...</span>
+                </>
+              ) : (
+                <>
+                  <Sliders className="w-4 h-4" />
+                  <span>Chuyển Sang Căn Chỉnh Thủ Công</span>
+                </>
+              )}
+            </button>
           </div>
         )}
 
@@ -271,6 +314,17 @@ export const LogConsole: React.FC = () => {
             <RotateCcw className="w-3.5 h-3.5" />
             <span>Back to Setup</span>
           </button>
+
+          {isFailed && (
+            <button
+              onClick={handleSwitchToManual}
+              disabled={isSwitchingManual}
+              className="px-4 py-2 text-xs font-semibold text-amber-300 hover:text-white bg-amber-600/20 hover:bg-amber-600/40 border border-amber-500/30 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
+            >
+              <Sliders className="w-3.5 h-3.5 text-amber-400" />
+              <span>Căn chỉnh thủ công</span>
+            </button>
+          )}
 
           {isDone && (
             <button
@@ -291,3 +345,4 @@ export const LogConsole: React.FC = () => {
     </div>
   );
 };
+

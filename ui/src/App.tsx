@@ -3,6 +3,7 @@ import { useInspectionStore } from './store/useInspectionStore';
 import { Dropzone } from './components/Dropzone';
 import { LogConsole } from './components/LogConsole';
 import { Workspace } from './components/Workspace';
+import { ManualAlignView } from './components/ManualAlignView';
 import { ScanSearch } from 'lucide-react';
 
 import fesLogo from './assets/fes.png';
@@ -49,6 +50,7 @@ export const App: React.FC = () => {
       <main className="flex-1 flex flex-col">
         {viewMode === 'setup' && <Dropzone />}
         {viewMode === 'console' && <LogConsole />}
+        {viewMode === 'manual_align' && <ManualAlignView />}
       </main>
     </div>
   );

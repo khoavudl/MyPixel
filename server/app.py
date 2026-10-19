@@ -34,12 +34,16 @@ import cv2
 import yaml
 from server.config import DEFAULT_PROFILE_PATH, OUT_DIR, UI_DIST_DIR
 from server.exporter import export_audit_report
+from server.manual_aligner import apply_alignment, prepare_alignment
 from server.runner import runner
 from server.schemas import (
     AnalyzeResponse,
     Annotation,
     AnnotationsPayload,
     ExportRequest,
+    ManualAlignApplyRequest,
+    ManualAlignPrepareResponse,
+    ManualTransform,
     PastRunSummary,
     RunImages,
     RunStatusResponse,
@@ -126,6 +130,155 @@ async def analyze_artwork(
         status="STARTING",
         message="Pipeline initiated. Connect to WebSocket /ws/runs/{run_id} for real-time logs.",
     )
+
+
+@app.post("/api/manual_align/prepare", response_model=ManualAlignPrepareResponse)
+async def prepare_manual_align_upload(
+    brand_file: Annotated[UploadFile, File(...)],
+    vendor_file: Annotated[UploadFile, File(...)],
+    brand_page: Annotated[int, Form()] = 1,
+    vendor_page: Annotated[int, Form()] = 1,
+    run_id: Annotated[str, Form()] = "",
+) -> ManualAlignPrepareResponse:
+    """Upload Brand and Vendor files and generate lightweight preview images for manual interactive alignment."""
+    rid = run_id.strip() if run_id.strip() else f"manual_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S_%f')}"
+    run_dir = OUT_DIR / rid
+    upload_dir = run_dir / "uploads"
+    upload_dir.mkdir(parents=True, exist_ok=True)
+
+    dest_brand = upload_dir / (brand_file.filename or "brand.pdf")
+    dest_vendor = upload_dir / (vendor_file.filename or "vendor.pdf")
+
+    with open(dest_brand, "wb") as f:
+        shutil.copyfileobj(brand_file.file, f)
+    with open(dest_vendor, "wb") as f:
+        shutil.copyfileobj(vendor_file.file, f)
+
+    res = prepare_alignment(
+        brand_path=dest_brand,
+        vendor_path=dest_vendor,
+        brand_page=brand_page,
+        vendor_page=vendor_page,
+        run_id=rid,
+    )
+    return ManualAlignPrepareResponse(**res)
+
+
+@app.get("/api/manual_align/prepare/{run_id}", response_model=ManualAlignPrepareResponse)
+async def prepare_manual_align_from_run(run_id: str) -> ManualAlignPrepareResponse:
+    """Prepare manual interactive staging room using files from an existing (or failed) run."""
+    run_dir = OUT_DIR / run_id
+    if not run_dir.is_dir():
+        raise HTTPException(status_code=404, detail=f"Run '{run_id}' not found")
+
+    upload_dir = run_dir / "uploads"
+    if not upload_dir.is_dir():
+        raise HTTPException(status_code=400, detail=f"No uploaded files found in run '{run_id}'")
+
+    brand_path = None
+    vendor_path = None
+    brand_page = 1
+    vendor_page = 1
+
+    report_file = run_dir / "report.json"
+    if report_file.is_file():
+        try:
+            with open(report_file, "r", encoding="utf-8") as f:
+                rep = json.load(f)
+                b_info = rep.get("inputs", {}).get("brand", {})
+                v_info = rep.get("inputs", {}).get("vendor", {})
+                if b_info.get("pdf_path") and Path(b_info["pdf_path"]).is_file():
+                    brand_path = Path(b_info["pdf_path"])
+                if v_info.get("pdf_path") and Path(v_info["pdf_path"]).is_file():
+                    vendor_path = Path(v_info["pdf_path"])
+                brand_page = int(b_info.get("page_number", 1))
+                vendor_page = int(v_info.get("page_number", 1))
+        except Exception:
+            pass
+
+    if not brand_path or not vendor_path:
+        uploaded_files = sorted(list(upload_dir.iterdir()))
+        if len(uploaded_files) >= 2:
+            brand_path = uploaded_files[0]
+            vendor_path = uploaded_files[1]
+        elif len(uploaded_files) == 1:
+            brand_path = uploaded_files[0]
+            vendor_path = uploaded_files[0]
+        else:
+            raise HTTPException(status_code=400, detail="Cannot find uploaded files to align")
+
+    res = prepare_alignment(
+        brand_path=brand_path,
+        vendor_path=vendor_path,
+        brand_page=brand_page,
+        vendor_page=vendor_page,
+        run_id=run_id,
+    )
+    return ManualAlignPrepareResponse(**res)
+
+
+@app.post("/api/manual_align/apply", response_model=RunStatusResponse)
+async def apply_manual_align(payload: ManualAlignApplyRequest) -> RunStatusResponse:
+    """Apply manual transform matrix, warp Vendor to match Brand, and return 4 workspace images."""
+    run_dir = OUT_DIR / payload.run_id
+    if not run_dir.is_dir():
+        raise HTTPException(status_code=404, detail=f"Run '{payload.run_id}' not found")
+
+    upload_dir = run_dir / "uploads"
+    brand_path = None
+    vendor_path = None
+
+    report_file = run_dir / "report.json"
+    if report_file.is_file():
+        try:
+            with open(report_file, "r", encoding="utf-8") as f:
+                rep = json.load(f)
+                b_p = rep.get("inputs", {}).get("brand", {}).get("pdf_path")
+                v_p = rep.get("inputs", {}).get("vendor", {}).get("pdf_path")
+                if b_p and Path(b_p).is_file():
+                    brand_path = Path(b_p)
+                if v_p and Path(v_p).is_file():
+                    vendor_path = Path(v_p)
+        except Exception:
+            pass
+
+    if not brand_path or not vendor_path:
+        uploaded_files = sorted(list(upload_dir.iterdir()))
+        if len(uploaded_files) >= 2:
+            brand_path = uploaded_files[0]
+            vendor_path = uploaded_files[1]
+        elif len(uploaded_files) == 1:
+            brand_path = uploaded_files[0]
+            vendor_path = uploaded_files[0]
+        else:
+            raise HTTPException(status_code=400, detail="Cannot find uploaded files to align")
+
+    result = apply_alignment(
+        run_id=payload.run_id,
+        brand_path=brand_path,
+        vendor_path=vendor_path,
+        brand_page=payload.brand_page,
+        vendor_page=payload.vendor_page,
+        transform=payload.transform.model_dump(),
+        crop_bbox_mm=payload.crop_bbox_mm,
+    )
+
+    images = RunImages(
+        brand_cropped=result["images"]["brand_cropped"],
+        vendor_cropped=result["images"]["vendor_cropped"],
+        overlay=result["images"]["overlay"],
+        absdiff_heatmap=result["images"]["absdiff_heatmap"],
+    )
+
+    return RunStatusResponse(
+        run_id=payload.run_id,
+        status="PASS",
+        exit_code=0,
+        error=None,
+        images=images,
+        report=result["report"],
+    )
+
 
 
 @app.post("/api/inspect_single", response_model=RunStatusResponse)

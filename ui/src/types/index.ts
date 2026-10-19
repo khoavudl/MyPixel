@@ -86,5 +86,22 @@ export interface PastRunSummary {
 
 export type InspectionType = 'compare' | 'single';
 export type MainFunctionTab = 'history' | 'compare' | 'single';
+export type CompareCropMode = 'auto' | 'full' | 'manual';
+
+export interface ManualAlignPrepareData {
+  run_id: string;
+  brand_image: string;
+  vendor_image: string;
+  brand_size_mm: [number, number];
+  vendor_size_mm: [number, number];
+  brand_shape_px: [number, number];
+  vendor_shape_px: [number, number];
+  initial_crop_bbox_mm: [number, number, number, number];
+  brand_filename: string;
+  vendor_filename: string;
+  brand_page: number;
+  vendor_page: number;
+}
+
 
 

@@ -14,6 +14,7 @@ import {
   RefreshCw,
   Crop,
   Maximize,
+  Sliders,
   Trash2,
 } from 'lucide-react';
 import { useInspectionStore } from '../store/useInspectionStore';
@@ -38,6 +39,7 @@ export const Dropzone: React.FC = () => {
     setBrandPage,
     setVendorPage,
     setCompareCropMode,
+    setManualAlignData,
 
     // Function 3 state
     singleFile,
@@ -187,6 +189,40 @@ export const Dropzone: React.FC = () => {
     }
     if (compareCropMode === 'auto' && !targetSizeMm.trim()) {
       setErrorMsg('Please enter target trim size WxH mm (e.g. 620x250) or switch to Full Page Sheet mode.');
+      return;
+    }
+
+    if (compareCropMode === 'manual') {
+      setErrorMsg(null);
+      setIsAnalyzing(true);
+      const formData = new FormData();
+      formData.append('brand_file', brandFile);
+      formData.append('vendor_file', vendorFile);
+      formData.append('brand_page', brandPage.toString());
+      formData.append('vendor_page', vendorPage.toString());
+
+      try {
+        const res = await fetch('/api/manual_align/prepare', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.detail || 'Không thể khởi tạo phiên căn chỉnh thủ công');
+        }
+
+        const data = await res.json();
+        setManualAlignData(data);
+        setRunId(data.run_id);
+        setInspectionType('compare');
+        setIsAnalyzing(false);
+        setViewMode('manual_align');
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        setErrorMsg(msg);
+        setIsAnalyzing(false);
+      }
       return;
     }
 
@@ -768,6 +804,18 @@ export const Dropzone: React.FC = () => {
                     <Maximize className="w-3.5 h-3.5" />
                     <span>Full Page Sheet (Toàn Trang)</span>
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setCompareCropMode('manual')}
+                    className={`px-3 py-1 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-all cursor-pointer ${
+                      compareCropMode === 'manual'
+                        ? 'bg-amber-600 text-white shadow-sm'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <Sliders className="w-3.5 h-3.5" />
+                    <span>Manual Interactive (Căn Chỉnh Thủ Công)</span>
+                  </button>
                 </div>
               </div>
 
@@ -788,11 +836,18 @@ export const Dropzone: React.FC = () => {
                     Required: enter dimensions in mm (e.g. 620x250, 270x130)
                   </span>
                 </div>
-              ) : (
+              ) : compareCropMode === 'full' ? (
                 <div className="flex items-center gap-2 text-xs text-purple-300 bg-purple-500/10 border border-purple-500/20 px-3.5 py-2 rounded-xl">
                   <Sparkles className="w-4 h-4 shrink-0 text-purple-400" />
                   <span>
                     Full Page Sheet: Automatically aligns and compares the entire sheet canvas (no W×H needed). Ideal for folding carton nets, irregular dielines, and dimension leader lines.
+                  </span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 text-xs text-amber-300 bg-amber-500/10 border border-amber-500/20 px-3.5 py-2 rounded-xl">
+                  <Sliders className="w-4 h-4 shrink-0 text-amber-400" />
+                  <span>
+                    Căn Chỉnh Thủ Công: Tự do kéo thả, phóng to thu nhỏ và căn khít 2 bản vẽ bằng mắt. Thích hợp cho bản vẽ kỹ thuật A4 thu nhỏ, hộp gấp/bình bản phức tạp hoặc file không chuẩn khổ. Bỏ qua hoàn toàn kiểm định kích thước.
                   </span>
                 </div>
               )}
@@ -802,13 +857,15 @@ export const Dropzone: React.FC = () => {
               onClick={handleStartAnalysis}
               disabled={!brandFile || !vendorFile || (compareCropMode === 'auto' && !targetSizeMm.trim())}
               className={`w-full md:w-auto px-8 py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all shadow-lg shrink-0 ${
-                brandFile && vendorFile && (compareCropMode === 'full' || targetSizeMm.trim())
-                  ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-500/25 cursor-pointer hover:scale-[1.02]'
+                brandFile && vendorFile && (compareCropMode !== 'auto' || targetSizeMm.trim())
+                  ? compareCropMode === 'manual'
+                    ? 'bg-amber-600 hover:bg-amber-500 text-white shadow-amber-500/25 cursor-pointer hover:scale-[1.02]'
+                    : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-500/25 cursor-pointer hover:scale-[1.02]'
                   : 'bg-slate-800 text-slate-500 cursor-not-allowed shadow-none'
               }`}
             >
               <Play className="w-4 h-4 fill-current" />
-              <span>Start</span>
+              <span>{compareCropMode === 'manual' ? 'Vào Trạm Căn Chỉnh' : 'Start'}</span>
             </button>
           </div>
         </div>

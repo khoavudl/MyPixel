@@ -77,3 +77,35 @@ class PastRunSummary(BaseModel):
     annotations_count: int = 0
     has_images: bool = False
 
+
+class ManualAlignPrepareResponse(BaseModel):
+    run_id: str
+    brand_image: str
+    vendor_image: str
+    brand_size_mm: list[float]
+    vendor_size_mm: list[float]
+    brand_shape_px: list[int]
+    vendor_shape_px: list[int]
+    initial_crop_bbox_mm: list[float]
+    brand_filename: str
+    vendor_filename: str
+    brand_page: int = 1
+    vendor_page: int = 1
+
+
+class ManualTransform(BaseModel):
+    offset_x_mm: float = 0.0
+    offset_y_mm: float = 0.0
+    scale_x: float = 1.0
+    scale_y: float = 1.0
+    rotation_deg: float = 0.0
+
+
+class ManualAlignApplyRequest(BaseModel):
+    run_id: str
+    transform: ManualTransform
+    crop_bbox_mm: list[float] | None = None
+    brand_page: int = 1
+    vendor_page: int = 1
+
+
