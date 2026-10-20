@@ -24,6 +24,8 @@ export const ManualAlignView: React.FC = () => {
     setRunId,
     setInspectionType,
     setAnnotations,
+    setManualAlignData,
+    resetViewport,
   } = useInspectionStore();
 
   if (!manualAlignData) {
@@ -54,6 +56,7 @@ export const ManualAlignView: React.FC = () => {
     vendor_filename,
     brand_page,
     vendor_page,
+    initial_transform,
   } = manualAlignData;
 
   // Staging viewport pan & zoom (for observing the composite canvas)
@@ -70,10 +73,18 @@ export const ManualAlignView: React.FC = () => {
   const sizeRatio = brand_size_mm[0] / Math.max(vendor_size_mm[0], 1);
   const isVendorScaledDown = sizeRatio > 2.0;
 
-  const [offsetXmm, setOffsetXmm] = useState(0.0);
-  const [offsetYmm, setOffsetYmm] = useState(0.0);
-  const [scale, setScale] = useState(isVendorScaledDown ? sizeRatio : 1.0);
-  const [rotationDeg, setRotationDeg] = useState(0.0);
+  const [offsetXmm, setOffsetXmm] = useState(
+    initial_transform?.offset_x_mm ?? 0.0
+  );
+  const [offsetYmm, setOffsetYmm] = useState(
+    initial_transform?.offset_y_mm ?? 0.0
+  );
+  const [scale, setScale] = useState(
+    initial_transform?.scale_x ?? (isVendorScaledDown ? sizeRatio : 1.0)
+  );
+  const [rotationDeg, setRotationDeg] = useState(
+    initial_transform?.rotation_deg ?? 0.0
+  );
 
   // Sync refs with latest state for high-frequency wheel / keyboard events
   const scaleRef = useRef(scale);
@@ -427,6 +438,17 @@ export const ManualAlignView: React.FC = () => {
       setRunStatus(statusResponse);
       setInspectionType('compare');
       setAnnotations([]);
+      setManualAlignData({
+        ...manualAlignData,
+        initial_transform: {
+          offset_x_mm: Number(offsetXmm.toFixed(4)),
+          offset_y_mm: Number(offsetYmm.toFixed(4)),
+          scale_x: Number(scale.toFixed(6)),
+          scale_y: Number(scale.toFixed(6)),
+          rotation_deg: Number(rotationDeg.toFixed(3)),
+        },
+      });
+      resetViewport();
       setViewMode('workspace');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);

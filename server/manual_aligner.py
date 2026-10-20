@@ -71,8 +71,22 @@ def prepare_alignment(
     b_w_mm, b_h_mm = brand_page_obj.page_size_mm
     v_w_mm, v_h_mm = vendor_page_obj.page_size_mm
 
-    # Check if a previous run had detected frame candidates to pre-populate crop_bbox
+    # Save staging metadata to guarantee Brand and Vendor identity is NEVER swapped
+    staging_meta = {
+        "run_id": run_id,
+        "brand_path": str(dest_brand.resolve()),
+        "vendor_path": str(dest_vendor.resolve()),
+        "brand_page": brand_page,
+        "vendor_page": vendor_page,
+        "brand_filename": dest_brand.name,
+        "vendor_filename": dest_vendor.name,
+    }
+    with open(run_dir / "staging_meta.json", "w", encoding="utf-8") as f:
+        json.dump(staging_meta, f, indent=2)
+
+    # Check if a previous run had detected frame candidates or existing manual alignment
     initial_crop_bbox_mm = [0.0, 0.0, float(b_w_mm), float(b_h_mm)]
+    initial_transform = None
     existing_report = run_dir / "report.json"
     if existing_report.is_file():
         try:
@@ -81,6 +95,8 @@ def prepare_alignment(
                 b_cand = rep_data.get("tasks", {}).get("task2_frame_detect", {}).get("brand", {}).get("selected")
                 if b_cand and b_cand.get("bbox_mm"):
                     initial_crop_bbox_mm = [float(v) for v in b_cand["bbox_mm"]]
+                if "manual_transform" in rep_data:
+                    initial_transform = rep_data["manual_transform"]
         except Exception:
             pass
 
@@ -97,6 +113,7 @@ def prepare_alignment(
         "vendor_filename": dest_vendor.name,
         "brand_page": brand_page,
         "vendor_page": vendor_page,
+        "initial_transform": initial_transform,
     }
 
 
@@ -169,19 +186,18 @@ def apply_alignment(
         dest_vendor, page_number=vendor_page, px_per_mm=vendor_px_per_mm, source="vendor"
     )
     v_img = vendor_page_obj.img
+    v_h_px, v_w_px = v_img.shape[:2]
     v_w_mm, v_h_mm = vendor_page_obj.page_size_mm
 
     # 4. Compute Affine Transformation Matrix
-    # We define 3 reference points on Vendor in mm:
+    # We define 3 reference points on Vendor in pixel space:
     # p0 = (0, 0) [Top-Left]
-    # p1 = (v_w_mm, 0) [Top-Right]
-    # p2 = (0, v_h_mm) [Bottom-Left]
-    #
-    # In Source Pixels:
+    # p1 = (v_w_px, 0) [Top-Right]
+    # p2 = (0, v_h_px) [Bottom-Left]
     src_pts = np.float32([
         [0.0, 0.0],
-        [v_w_mm * vendor_px_per_mm, 0.0],
-        [0.0, v_h_mm * vendor_px_per_mm],
+        [float(v_w_px), 0.0],
+        [0.0, float(v_h_px)],
     ])
 
     # Where do these 3 points map in Brand coordinate space (mm)?
@@ -276,11 +292,13 @@ def apply_alignment(
         "inputs": {
             "brand": {
                 "pdf_path": str(dest_brand.resolve()),
+                "filename": dest_brand.name,
                 "page_number": brand_page,
                 "page_size_mm": [round(float(b_w_mm), 2), round(float(b_h_mm), 2)],
             },
             "vendor": {
                 "pdf_path": str(dest_vendor.resolve()),
+                "filename": dest_vendor.name,
                 "page_number": vendor_page,
                 "page_size_mm": [round(float(v_w_mm), 2), round(float(v_h_mm), 2)],
             },

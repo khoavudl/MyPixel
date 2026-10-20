@@ -101,6 +101,13 @@ export interface ManualAlignPrepareData {
   vendor_filename: string;
   brand_page: number;
   vendor_page: number;
+  initial_transform?: {
+    offset_x_mm: number;
+    offset_y_mm: number;
+    scale_x: number;
+    scale_y: number;
+    rotation_deg: number;
+  } | null;
 }
 
 

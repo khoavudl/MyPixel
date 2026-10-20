@@ -91,6 +91,7 @@ class ManualAlignPrepareResponse(BaseModel):
     vendor_filename: str
     brand_page: int = 1
     vendor_page: int = 1
+    initial_transform: ManualTransform | None = None
 
 
 class ManualTransform(BaseModel):

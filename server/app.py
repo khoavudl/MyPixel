@@ -227,20 +227,43 @@ async def apply_manual_align(payload: ManualAlignApplyRequest) -> RunStatusRespo
     upload_dir = run_dir / "uploads"
     brand_path = None
     vendor_path = None
+    brand_page = payload.brand_page
+    vendor_page = payload.vendor_page
 
-    report_file = run_dir / "report.json"
-    if report_file.is_file():
+    # 1. First priority: read staging_meta.json from prepare_alignment to preserve file identity
+    meta_file = run_dir / "staging_meta.json"
+    if meta_file.is_file():
         try:
-            with open(report_file, "r", encoding="utf-8") as f:
-                rep = json.load(f)
-                b_p = rep.get("inputs", {}).get("brand", {}).get("pdf_path")
-                v_p = rep.get("inputs", {}).get("vendor", {}).get("pdf_path")
-                if b_p and Path(b_p).is_file():
-                    brand_path = Path(b_p)
-                if v_p and Path(v_p).is_file():
-                    vendor_path = Path(v_p)
+            with open(meta_file, "r", encoding="utf-8") as f:
+                meta = json.load(f)
+                bp = meta.get("brand_path")
+                vp = meta.get("vendor_path")
+                if bp and Path(bp).is_file():
+                    brand_path = Path(bp)
+                if vp and Path(vp).is_file():
+                    vendor_path = Path(vp)
+                if "brand_page" in meta:
+                    brand_page = int(meta["brand_page"])
+                if "vendor_page" in meta:
+                    vendor_page = int(meta["vendor_page"])
         except Exception:
             pass
+
+    # 2. Second priority: read report.json if coming from prior pipeline run
+    if not brand_path or not vendor_path:
+        report_file = run_dir / "report.json"
+        if report_file.is_file():
+            try:
+                with open(report_file, "r", encoding="utf-8") as f:
+                    rep = json.load(f)
+                    b_p = rep.get("inputs", {}).get("brand", {}).get("pdf_path")
+                    v_p = rep.get("inputs", {}).get("vendor", {}).get("pdf_path")
+                    if b_p and Path(b_p).is_file():
+                        brand_path = Path(b_p)
+                    if v_p and Path(v_p).is_file():
+                        vendor_path = Path(v_p)
+            except Exception:
+                pass
 
     if not brand_path or not vendor_path:
         uploaded_files = sorted(list(upload_dir.iterdir()))
@@ -257,17 +280,18 @@ async def apply_manual_align(payload: ManualAlignApplyRequest) -> RunStatusRespo
         run_id=payload.run_id,
         brand_path=brand_path,
         vendor_path=vendor_path,
-        brand_page=payload.brand_page,
-        vendor_page=payload.vendor_page,
+        brand_page=brand_page,
+        vendor_page=vendor_page,
         transform=payload.transform.model_dump(),
         crop_bbox_mm=payload.crop_bbox_mm,
     )
 
+    t = int(datetime.now(timezone.utc).timestamp() * 1000)
     images = RunImages(
-        brand_cropped=result["images"]["brand_cropped"],
-        vendor_cropped=result["images"]["vendor_cropped"],
-        overlay=result["images"]["overlay"],
-        absdiff_heatmap=result["images"]["absdiff_heatmap"],
+        brand_cropped=f"{result['images']['brand_cropped']}?t={t}",
+        vendor_cropped=f"{result['images']['vendor_cropped']}?t={t}",
+        overlay=f"{result['images']['overlay']}?t={t}",
+        absdiff_heatmap=f"{result['images']['absdiff_heatmap']}?t={t}",
     )
 
     return RunStatusResponse(
@@ -569,11 +593,18 @@ async def delete_run(run_id: str) -> dict[str, str]:
 
 @app.get("/api/runs/{run_id}/images/{filename}")
 async def get_run_image(run_id: str, filename: str) -> FileResponse:
-    """Serve generated diagnostic and crop images."""
+    """Serve generated diagnostic and crop images with no-cache headers."""
     file_path = OUT_DIR / run_id / filename
     if not file_path.is_file():
         raise HTTPException(status_code=404, detail=f"Image '{filename}' not found for run '{run_id}'")
-    return FileResponse(file_path)
+    return FileResponse(
+        file_path,
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },
+    )
 
 
 @app.websocket("/ws/runs/{run_id}")

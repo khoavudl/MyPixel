@@ -123,3 +123,50 @@ def test_apply_manual_align(client, test_pdfs):
     assert st_data["status"] == "PASS"
     assert st_data["report"]["mode"] == "manual_align"
     assert "manual_transform" in st_data["report"]
+
+
+def test_brand_vendor_order_preserved_when_alphabetically_inverted(client, tmp_path):
+    # Vendor filename starts with 'a_', Brand filename starts with 'z_'
+    p_vendor = tmp_path / "a_vendor.pdf"
+    p_brand = tmp_path / "z_brand.pdf"
+    build_pdf(p_brand, text_line1="BRAND 200", page_w_mm=200, page_h_mm=150)
+    build_pdf(p_vendor, text_line1="VENDOR 100", page_w_mm=100, page_h_mm=80)
+
+    with open(p_brand, "rb") as fb, open(p_vendor, "rb") as fv:
+        prep_res = client.post(
+            "/api/manual_align/prepare",
+            files={
+                "brand_file": ("z_brand.pdf", fb, "application/pdf"),
+                "vendor_file": ("a_vendor.pdf", fv, "application/pdf"),
+            },
+        )
+    assert prep_res.status_code == 200
+    data = prep_res.json()
+    run_id = data["run_id"]
+    # Verify Brand is 200mm, Vendor is 100mm
+    assert round(data["brand_size_mm"][0]) == 200
+    assert round(data["vendor_size_mm"][0]) == 100
+
+    # Apply alignment
+    payload = {
+        "run_id": run_id,
+        "transform": {
+            "offset_x_mm": 10.0,
+            "offset_y_mm": 10.0,
+            "scale_x": 0.5,
+            "scale_y": 0.5,
+            "rotation_deg": 0.0,
+        },
+        "crop_bbox_mm": [0.0, 0.0, 200.0, 150.0],
+    }
+    apply_res = client.post("/api/manual_align/apply", json=payload)
+    assert apply_res.status_code == 200
+    res_data = apply_res.json()
+
+    # Verify report keeps Brand as z_brand and Vendor as a_vendor
+    rep = res_data["report"]
+    assert "z_brand" in rep["inputs"]["brand"]["pdf_path"]
+    assert "a_vendor" in rep["inputs"]["vendor"]["pdf_path"]
+    assert round(rep["inputs"]["brand"]["page_size_mm"][0]) == 200
+    assert round(rep["inputs"]["vendor"]["page_size_mm"][0]) == 100
+
