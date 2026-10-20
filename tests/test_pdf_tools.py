@@ -457,3 +457,70 @@ def test_export_flattened_pdf_vietnamese_unicode_text():
     assert "Kiểm tra bao bì in ấn" in extracted
     assert "độ lệch màu sắc" in extracted
     assert "nội dung Tiếng Việt" in extracted
+
+
+def test_proportional_scaling_large_canvas():
+    """Verify that export scales badge and text size proportional to canvas_width."""
+    import fitz
+
+    with open(SAMPLE_PDF, "rb") as f:
+        upload_resp = client.post(
+            "/api/pdf_tools/upload",
+            files={"file": ("v11.pdf", f, "application/pdf")},
+        )
+    doc_id = upload_resp.json()["doc_id"]
+
+    # Export with custom canvas_width (500px, which means scale ~ 2x on v11 whose width is ~1000pt)
+    export_resp = client.post(
+        "/api/pdf_tools/export_flattened_pdf",
+        json={
+            "doc_id": doc_id,
+            "current_page": 1,
+            "badge_size": 40,
+            "canvas_width": 500.0,
+            "steps": [
+                {
+                    "id": "step-1",
+                    "step_number": 1,
+                    "norm_x": 0.2,
+                    "norm_y": 0.2,
+                    "title": "Step 1",
+                    "color": "blue",
+                }
+            ],
+            "shapes": [
+                {
+                    "id": "text-scale-1",
+                    "type": "text",
+                    "norm_x1": 0.1,
+                    "norm_y1": 0.4,
+                    "norm_x2": 0.6,
+                    "norm_y2": 0.7,
+                    "color": "blue",
+                    "text": "Proportional Scaled Text",
+                    "font_size": 24.0,
+                }
+            ],
+        },
+    )
+    assert export_resp.status_code == 200
+
+    doc = fitz.open(stream=export_resp.content, filetype="pdf")
+    page = doc[0]
+    pw = page.rect.width
+    scale = pw / 500.0  # ~ 2.003
+    expected_radius = (40 * 0.5) * scale  # ~ 40.06 pt
+
+    # Check that circle has diameter ~ 80 pt (radius ~ 40 pt)
+    drawings = page.get_drawings()
+    circle_drawings = [d for d in drawings if d.get("type") in ("fs", "s") and d.get("rect")]
+    assert len(circle_drawings) > 0
+
+    # Badge bounding rect should reflect ~ 2 * expected_radius width
+    badge_rects = [
+        d["rect"]
+        for d in circle_drawings
+        if abs(d["rect"].width - (expected_radius * 2)) < 5.0
+    ]
+    assert len(badge_rects) > 0, f"Expected scaled badge diameter ~ {expected_radius*2}, got: {[d['rect'].width for d in circle_drawings]}"
+    doc.close()

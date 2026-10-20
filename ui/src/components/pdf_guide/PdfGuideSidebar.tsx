@@ -39,6 +39,7 @@ export const PdfGuideSidebar: React.FC = () => {
     docInfo,
     currentPage,
     badgeSize,
+    canvasWidth,
     exportPdf,
     isExportingPdf,
   } = usePdfGuideStore();
@@ -131,6 +132,7 @@ export const PdfGuideSidebar: React.FC = () => {
         doc_id: docInfo.doc_id,
         current_page: currentPage,
         badge_size: badgeSize,
+        canvas_width: canvasWidth || 1000,
         format: 'docx',
         steps: steps.map((s) => ({
           id: s.id,

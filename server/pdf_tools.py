@@ -107,6 +107,7 @@ class GuideSavePayload(BaseModel):
     doc_id: str
     badge_size: int = 28
     current_page: int = 1
+    canvas_width: float = 1000.0
     steps: list[StepBadgePayload] = []
     shapes: list[GuideShapePayload] = []
     metadata: dict[str, Any] = {}
@@ -131,6 +132,7 @@ class ExportFlattenedPdfRequest(BaseModel):
     doc_id: str
     current_page: int = 1
     badge_size: int = 28
+    canvas_width: float = 1000.0
     steps: list[StepBadgePayload] = []
     shapes: list[GuideShapePayload] = []
 
@@ -139,6 +141,7 @@ class ExportSopDocRequest(BaseModel):
     doc_id: str
     current_page: int = 1
     badge_size: int = 28
+    canvas_width: float = 1000.0
     format: str = "docx"  # 'docx' | 'pdf'
     title: str = "Visual SOP & Manual Guide"
     steps: list[StepBadgePayload] = []
@@ -150,12 +153,17 @@ def draw_guide_elements_on_page(
     steps: list[StepBadgePayload],
     shapes: list[GuideShapePayload],
     badge_size: int = 28,
+    canvas_width: float = 1000.0,
 ):
-    """Draw vector annotations, arrows, boxes, and screen-invariant badges onto a fitz.Page."""
+    """Draw vector annotations, arrows, boxes, and screen-invariant badges onto a fitz.Page with proportional scaling."""
     page.remove_rotation()
     rect = page.rect
     pw = rect.width
     ph = rect.height
+
+    # Calculate scale factor relative to the user's screen canvas viewport
+    ref_w = float(canvas_width) if canvas_width and canvas_width > 50.0 else 1000.0
+    scale = pw / ref_w
 
     # 1. FIRST: Apply true permanent redactions for blur (redact) shapes
     # This physically purges underlying text glyphs, vector paths, and image pixels
@@ -192,12 +200,13 @@ def draw_guide_elements_on_page(
             y1 = s.norm_y1 * ph
             x2 = s.norm_x2 * pw
             y2 = s.norm_y2 * ph
-            page.draw_line(fitz.Point(x1, y1), fitz.Point(x2, y2), color=rgb, width=2.5)
+            arrow_sw = max(1.0, 2.5 * scale)
+            page.draw_line(fitz.Point(x1, y1), fitz.Point(x2, y2), color=rgb, width=arrow_sw)
             # Arrow head
             dx = x2 - x1
             dy = y2 - y1
             angle = math.atan2(dy, dx)
-            arrow_len = 10.0
+            arrow_len = 12.0 * scale
             tip_angle = math.pi / 6.0
             p1 = fitz.Point(
                 x2 - arrow_len * math.cos(angle - tip_angle),
@@ -207,15 +216,15 @@ def draw_guide_elements_on_page(
                 x2 - arrow_len * math.cos(angle + tip_angle),
                 y2 - arrow_len * math.sin(angle + tip_angle),
             )
-            page.draw_line(fitz.Point(x2, y2), p1, color=rgb, width=2.5)
-            page.draw_line(fitz.Point(x2, y2), p2, color=rgb, width=2.5)
+            page.draw_line(fitz.Point(x2, y2), p1, color=rgb, width=arrow_sw)
+            page.draw_line(fitz.Point(x2, y2), p2, color=rgb, width=arrow_sw)
         elif s.type == "box":
             bx1 = min(s.norm_x1, s.norm_x2) * pw
             by1 = min(s.norm_y1, s.norm_y2) * ph
             bx2 = max(s.norm_x1, s.norm_x2) * pw
             by2 = max(s.norm_y1, s.norm_y2) * ph
             box_rect = fitz.Rect(bx1, by1, bx2, by2)
-            sw = max(0.5, min(20.0, getattr(s, "stroke_width", 2.0)))
+            sw = max(0.8, getattr(s, "stroke_width", 2.0) * scale)
             if getattr(s, "has_fill", False):
                 page.draw_rect(box_rect, color=rgb, width=sw, fill=rgb, fill_opacity=0.15)
             else:
@@ -230,19 +239,25 @@ def draw_guide_elements_on_page(
             bx2 = max(s.norm_x1, s.norm_x2) * pw
             by2 = max(s.norm_y1, s.norm_y2) * ph
             t_rect = fitz.Rect(bx1, by1, bx2, by2)
-            page.draw_rect(t_rect, color=rgb, width=1.5, fill=(1, 1, 1), fill_opacity=0.92)
-            fs = max(8.0, min(64.0, getattr(s, "font_size", 14.0)))
+            page.draw_rect(t_rect, color=rgb, width=max(1.0, 1.5 * scale), fill=(1, 1, 1), fill_opacity=0.92)
+            screen_fs = max(8.0, min(120.0, getattr(s, "font_size", 14.0) or 14.0))
+            fs = screen_fs * scale
             content = (getattr(s, "text", "") or "").strip()
             if not content:
                 content = "Note"
+            pad = 4.0 * scale
+            inner_rect = fitz.Rect(bx1 + pad, by1 + pad, bx2 - pad, by2 - pad)
+            if inner_rect.width <= 0 or inner_rect.height <= 0:
+                inner_rect = t_rect
             # Attempt inserting text, auto-scaling down font size if it overflows
-            res = page.insert_textbox(t_rect, content, fontsize=fs, color=rgb, fontname=text_fontname)
-            while res < 0 and fs > 6.0:
-                fs -= 1.0
-                res = page.insert_textbox(t_rect, content, fontsize=fs, color=rgb, fontname=text_fontname)
+            res = page.insert_textbox(inner_rect, content, fontsize=fs, color=rgb, fontname=text_fontname)
+            while res < 0 and fs > 5.0 * scale:
+                fs -= max(0.5, 0.5 * scale)
+                res = page.insert_textbox(inner_rect, content, fontsize=fs, color=rgb, fontname=text_fontname)
 
-    # 2. Draw step badges (scaled appropriately in pt)
-    radius = max(8.0, min(36.0, badge_size * 0.55))
+    # 4. Draw step badges (scaled appropriately in pt proportional to canvas)
+    radius = max(6.0 * scale, (badge_size * 0.5) * scale)
+    border_w = max(1.0, 1.5 * scale)
     for step in steps:
         rgb = COLOR_RGB_MAP.get(step.color, (0.23, 0.51, 0.96))
         cx = step.norm_x * pw
@@ -250,7 +265,7 @@ def draw_guide_elements_on_page(
         # Draw background circle
         page.draw_circle(fitz.Point(cx, cy), radius, color=rgb, fill=rgb)
         # White border
-        page.draw_circle(fitz.Point(cx, cy), radius, color=(1, 1, 1), width=1.5)
+        page.draw_circle(fitz.Point(cx, cy), radius, color=(1, 1, 1), width=border_w)
         # Step number text
         num_str = str(step.step_number)
         fontsize = radius * 1.15
@@ -670,6 +685,7 @@ async def export_flattened_pdf(payload: ExportFlattenedPdfRequest) -> FileRespon
             steps=payload.steps,
             shapes=payload.shapes,
             badge_size=payload.badge_size,
+            canvas_width=payload.canvas_width,
         )
 
         doc.save(str(output_pdf_path))
@@ -702,6 +718,7 @@ async def export_sop_doc(payload: ExportSopDocRequest) -> FileResponse:
             steps=payload.steps,
             shapes=payload.shapes,
             badge_size=payload.badge_size,
+            canvas_width=payload.canvas_width,
         )
         pix = page.get_pixmap(dpi=200)
         pix.save(str(overview_img_path))
@@ -726,6 +743,7 @@ async def export_sop_doc(payload: ExportSopDocRequest) -> FileResponse:
             doc_id=payload.doc_id,
             current_page=payload.current_page,
             badge_size=payload.badge_size,
+            canvas_width=payload.canvas_width,
             steps=payload.steps,
             shapes=payload.shapes,
         )

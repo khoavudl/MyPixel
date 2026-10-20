@@ -59,6 +59,7 @@ export const PdfGuideCanvas: React.FC = () => {
     badgeSize,
     currentPage,
     docInfo,
+    setCanvasWidth,
   } = usePdfGuideStore();
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -92,6 +93,23 @@ export const PdfGuideCanvas: React.FC = () => {
 
   // Text Box editing state
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
+
+  // Sync rendered canvas artwork width to store for 1:1 proportional PDF export
+  useEffect(() => {
+    const el = imageRef.current;
+    if (!el) return;
+    const updateWidth = () => {
+      if (el.clientWidth > 50) {
+        setCanvasWidth(el.clientWidth);
+      }
+    };
+    updateWidth();
+    if (typeof ResizeObserver !== 'undefined') {
+      const ro = new ResizeObserver(updateWidth);
+      ro.observe(el);
+      return () => ro.disconnect();
+    }
+  }, [pageImageUrl, docInfo, setCanvasWidth]);
 
   // Space key listener for Panning & Keyboard shortcuts
   useEffect(() => {
@@ -763,6 +781,12 @@ export const PdfGuideCanvas: React.FC = () => {
                 imageRendering: 'auto',
               }}
               draggable={false}
+              onLoad={(e) => {
+                const target = e.currentTarget;
+                if (target && target.clientWidth > 50) {
+                  setCanvasWidth(target.clientWidth);
+                }
+              }}
             />
 
             {/* SVG Layer for Shapes (Interactive, Clickable, Selectable, Resizable) */}

@@ -17,6 +17,7 @@ interface PdfGuideState {
   zoom: number;
   panX: number;
   panY: number;
+  canvasWidth: number; // Rendered reference width of artwork on screen in px
 
   // Tool & Settings
   activeTool: GuideToolMode;
@@ -53,6 +54,7 @@ interface PdfGuideState {
   setBadgeSize: (size: number) => void;
   setZoom: (zoom: number | ((prev: number) => number)) => void;
   setPan: (panX: number, panY: number) => void;
+  setCanvasWidth: (w: number) => void;
   resetViewport: () => void;
   undo: () => void;
   redo: () => void;
@@ -87,6 +89,7 @@ export const usePdfGuideStore = create<PdfGuideState>((set, get) => ({
   zoom: 1,
   panX: 0,
   panY: 0,
+  canvasWidth: 1000,
 
   activeTool: 'pan',
   activeColor: 'blue',
@@ -179,7 +182,7 @@ export const usePdfGuideStore = create<PdfGuideState>((set, get) => ({
   },
 
   exportPdf: async () => {
-    const { docInfo, currentPage, badgeSize, steps, shapes } = get();
+    const { docInfo, currentPage, badgeSize, steps, shapes, canvasWidth } = get();
     if (!docInfo) return;
     set({ isExportingPdf: true });
     try {
@@ -187,6 +190,7 @@ export const usePdfGuideStore = create<PdfGuideState>((set, get) => ({
         doc_id: docInfo.doc_id,
         current_page: currentPage,
         badge_size: badgeSize,
+        canvas_width: canvasWidth || 1000,
         steps: steps.map((s) => ({
           id: s.id,
           step_number: s.step_number,
@@ -252,6 +256,8 @@ export const usePdfGuideStore = create<PdfGuideState>((set, get) => ({
     }),
 
   setPan: (panX, panY) => set({ panX, panY }),
+
+  setCanvasWidth: (w) => set({ canvasWidth: Math.max(200, Math.round(w)) }),
 
   resetViewport: () => set({ zoom: 1, panX: 0, panY: 0 }),
 
