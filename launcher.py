@@ -21,6 +21,11 @@ import time
 import urllib.request
 import webbrowser
 
+# Prevent PyMuPDF layout optional module from loading in frozen environments
+# (it attempts to load external ONNX/YAML model files that are absent in standalone builds)
+for _mod in ("pymupdf.layout", "pymupdf_layout", "pymupdf4llm"):
+    sys.modules[_mod] = None
+
 # Bypass proxy for loopback addresses to avoid corporate proxy/security intercepting local API
 for key in ("NO_PROXY", "no_proxy"):
     current = os.environ.get(key, "")
@@ -129,9 +134,10 @@ try:
 except Exception:
     launcher_log = None
 
-if sys.stdout is None or not hasattr(sys.stdout, "isatty"):
+is_frozen = getattr(sys, "frozen", False)
+if is_frozen or sys.stdout is None or not hasattr(sys.stdout, "isatty"):
     sys.stdout = SafeStream(launcher_log)
-if sys.stderr is None or not hasattr(sys.stderr, "isatty"):
+if is_frozen or sys.stderr is None or not hasattr(sys.stderr, "isatty"):
     sys.stderr = SafeStream(launcher_log)
 if sys.stdin is None:
     try:
@@ -336,4 +342,16 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as exc:
+        import traceback
+        err_msg = f"Fatal launcher crash: {exc}\n{traceback.format_exc()}"
+        print(err_msg, file=sys.stderr)
+        if launcher_log:
+            try:
+                with open(launcher_log, "a", encoding="utf-8") as f:
+                    f.write(f"\n{err_msg}\n")
+            except Exception:
+                pass
+        sys.exit(1)

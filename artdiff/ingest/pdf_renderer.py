@@ -3,6 +3,11 @@
 from __future__ import annotations
 
 from pathlib import Path
+import sys
+# Prevent optional pymupdf.layout ONNX crash in standalone builds
+for _mod in ("pymupdf.layout", "pymupdf_layout", "pymupdf4llm"):
+    sys.modules.setdefault(_mod, None)
+
 import cv2
 import pymupdf as fitz
 import numpy as np

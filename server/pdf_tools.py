@@ -19,6 +19,11 @@ from docx.shared import Inches, Pt, RGBColor
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
+import sys
+# Prevent optional pymupdf.layout ONNX crash in standalone builds
+for _mod in ("pymupdf.layout", "pymupdf_layout", "pymupdf4llm"):
+    sys.modules.setdefault(_mod, None)
+
 import pymupdf as fitz
 
 from server.config import ARIAL_FONT_PATH, LOGO_PATH, OUT_DIR
