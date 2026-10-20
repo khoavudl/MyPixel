@@ -35,6 +35,7 @@ import yaml
 from server.config import DEFAULT_PROFILE_PATH, OUT_DIR, UI_DIST_DIR
 from server.exporter import export_audit_report
 from server.manual_aligner import apply_alignment, prepare_alignment
+from server.pdf_tools import router as pdf_tools_router
 from server.runner import runner
 from server.schemas import (
     AnalyzeResponse,
@@ -71,6 +72,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Standalone PDF Mini Tools & Guide Studio router (isolated from core inspection)
+app.include_router(pdf_tools_router)
+
 
 
 @app.get("/api/health")

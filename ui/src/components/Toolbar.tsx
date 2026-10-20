@@ -14,8 +14,10 @@ import {
   Home,
   SlidersHorizontal,
   Loader2,
+  BookOpenCheck,
 } from 'lucide-react';
 import { useInspectionStore } from '../store/useInspectionStore';
+import { usePdfGuideStore } from '../store/usePdfGuideStore';
 
 interface ToolbarProps {
   onFitToScreen: () => void;
@@ -297,8 +299,18 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         </button>
       </div>
 
-      {/* Right: Defect Punch List Toggle */}
+      {/* Right: PDF Guide Studio & Defect Punch List Toggle */}
       <div className="flex items-center gap-3">
+        {/* PDF Guide Studio Mini-tool Button */}
+        <button
+          onClick={() => usePdfGuideStore.getState().openStudio()}
+          title="Open Standalone PDF Guide Studio (Crop & SOP Maker)"
+          className="px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors border bg-blue-600/10 border-blue-500/30 text-blue-400 hover:bg-blue-600/20 cursor-pointer"
+        >
+          <BookOpenCheck className="w-3.5 h-3.5" />
+          <span>PDF Studio</span>
+        </button>
+
         {/* Defect List Sidebar Toggle */}
         <button
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
