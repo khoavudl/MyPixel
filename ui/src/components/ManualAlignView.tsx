@@ -75,6 +75,14 @@ export const ManualAlignView: React.FC = () => {
   const [scale, setScale] = useState(isVendorScaledDown ? sizeRatio : 1.0);
   const [rotationDeg, setRotationDeg] = useState(0.0);
 
+  // Sync refs with latest state for high-frequency wheel / keyboard events
+  const scaleRef = useRef(scale);
+  scaleRef.current = scale;
+  const offsetXRef = useRef(offsetXmm);
+  offsetXRef.current = offsetXmm;
+  const offsetYRef = useRef(offsetYmm);
+  offsetYRef.current = offsetYmm;
+
   // Blend modes & Opacity
   const [opacity, setOpacity] = useState(0.5);
   const [blendMode, setBlendMode] = useState<'normal' | 'difference' | 'duotone'>('difference');
@@ -117,8 +125,12 @@ export const ManualAlignView: React.FC = () => {
 
   // Scale around Vendor center helper
   const applyScaleAroundCenter = (targetScale: number) => {
+    const curScale = scaleRef.current;
+    const curOffX = offsetXRef.current;
+    const curOffY = offsetYRef.current;
+
     const newScale = Math.max(0.05, Number(targetScale.toFixed(4)));
-    if (newScale === scale) return;
+    if (newScale === curScale) return;
 
     const Vw = vendor_size_mm[0];
     const Vh = vendor_size_mm[1];
@@ -129,8 +141,12 @@ export const ManualAlignView: React.FC = () => {
     const centerOffsetX = cosT * (Vw / 2) - sinT * (Vh / 2);
     const centerOffsetY = sinT * (Vw / 2) + cosT * (Vh / 2);
 
-    const newOffX = offsetXmm + (scale - newScale) * centerOffsetX;
-    const newOffY = offsetYmm + (scale - newScale) * centerOffsetY;
+    const newOffX = curOffX + (curScale - newScale) * centerOffsetX;
+    const newOffY = curOffY + (curScale - newScale) * centerOffsetY;
+
+    scaleRef.current = newScale;
+    offsetXRef.current = newOffX;
+    offsetYRef.current = newOffY;
 
     setScale(newScale);
     setOffsetXmm(Number(newOffX.toFixed(4)));
@@ -185,10 +201,10 @@ export const ManualAlignView: React.FC = () => {
         setOffsetYmm((prev) => prev + stepMm);
       } else if (e.key === '+' || e.key === '=') {
         e.preventDefault();
-        applyScaleAroundCenter(scale * 1.01);
+        applyScaleAroundCenter(scaleRef.current * 1.01);
       } else if (e.key === '-' || e.key === '_') {
         e.preventDefault();
-        applyScaleAroundCenter(scale * 0.99);
+        applyScaleAroundCenter(scaleRef.current * 0.99);
       } else if (e.key === '[' || e.key === '{') {
         e.preventDefault();
         setRotationDeg((prev) => Number((prev - 0.2).toFixed(2)));
@@ -342,9 +358,14 @@ export const ManualAlignView: React.FC = () => {
     e.preventDefault();
 
     if (e.shiftKey) {
-      // Zoom Vendor ONLY (around Vendor's center)
-      const scaleStep = e.deltaY < 0 ? 1.03 : 0.97;
-      applyScaleAroundCenter(scale * scaleStep);
+      // With Shift held, browsers (especially macOS Chrome/Safari) remap vertical scroll to deltaX (deltaY becomes 0).
+      // We pick whichever delta has larger magnitude to reliably capture the wheel direction.
+      const delta = Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
+      if (delta === 0) return;
+
+      // Scrolling UP (negative delta) enlarges; scrolling DOWN (positive delta) shrinks
+      const scaleStep = delta < 0 ? 1.03 : 0.97;
+      applyScaleAroundCenter(scaleRef.current * scaleStep);
       return;
     }
 
@@ -570,8 +591,12 @@ export const ManualAlignView: React.FC = () => {
             onClick={() => {
               setOffsetXmm(0);
               setOffsetYmm(0);
-              setScale(isVendorScaledDown ? sizeRatio : 1.0);
+              const rScale = isVendorScaledDown ? sizeRatio : 1.0;
+              setScale(rScale);
               setRotationDeg(0);
+              scaleRef.current = rScale;
+              offsetXRef.current = 0;
+              offsetYRef.current = 0;
             }}
             className="px-3 py-1.5 text-xs text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
           >
