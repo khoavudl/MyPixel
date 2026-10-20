@@ -202,8 +202,14 @@ def draw_guide_elements_on_page(
             t_rect = fitz.Rect(bx1, by1, bx2, by2)
             page.draw_rect(t_rect, color=rgb, width=1.5, fill=(1, 1, 1), fill_opacity=0.92)
             fs = max(8.0, min(64.0, getattr(s, "font_size", 14.0)))
-            content = getattr(s, "text", "") or "Text Note"
-            page.insert_textbox(t_rect, content, fontsize=fs, color=rgb, fontname="hebo")
+            content = (getattr(s, "text", "") or "").strip()
+            if not content:
+                content = "Note"
+            # Attempt inserting text, auto-scaling down font size if it overflows
+            res = page.insert_textbox(t_rect, content, fontsize=fs, color=rgb, fontname="hebo")
+            while res < 0 and fs > 6.0:
+                fs -= 1.0
+                res = page.insert_textbox(t_rect, content, fontsize=fs, color=rgb, fontname="hebo")
 
     # 2. Draw step badges (scaled appropriately in pt)
     radius = max(8.0, min(36.0, badge_size * 0.55))

@@ -10,6 +10,8 @@ import {
   PanelRightClose,
   PanelRightOpen,
   FilePlus,
+  FileDown,
+  Loader2,
   RotateCw,
   Undo2,
   Redo2,
@@ -39,6 +41,8 @@ export const PdfGuideHeader: React.FC = () => {
     canRevertCrop,
     undoCropPage,
     rotatePage,
+    exportPdf,
+    isExportingPdf,
   } = usePdfGuideStore();
 
   const totalPages = docInfo?.total_pages || 1;
@@ -220,10 +224,25 @@ export const PdfGuideHeader: React.FC = () => {
 
       {/* Right: Actions */}
       <div className="flex items-center gap-2">
+        {/* Quick Export to PDF on Top Bar */}
+        <button
+          onClick={exportPdf}
+          disabled={isExportingPdf || !docInfo}
+          title="Export current annotated page to PDF"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs shadow-md shadow-blue-600/20 transition cursor-pointer disabled:opacity-50"
+        >
+          {isExportingPdf ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : (
+            <FileDown className="w-3.5 h-3.5 text-blue-100" />
+          )}
+          <span>{isExportingPdf ? 'Exporting...' : 'Export to PDF'}</span>
+        </button>
+
         <button
           onClick={resetAll}
           title="Open another PDF document"
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition text-xs font-medium"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition text-xs font-medium cursor-pointer"
         >
           <FilePlus className="w-3.5 h-3.5" />
           New File

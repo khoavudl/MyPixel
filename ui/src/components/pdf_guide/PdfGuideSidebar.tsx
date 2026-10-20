@@ -39,11 +39,12 @@ export const PdfGuideSidebar: React.FC = () => {
     docInfo,
     currentPage,
     badgeSize,
+    exportPdf,
+    isExportingPdf,
   } = usePdfGuideStore();
 
   const [isCopied, setIsCopied] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
-  const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [isExportingDocx, setIsExportingDocx] = useState(false);
 
   // Copy full step list as Markdown / SOP text
@@ -87,6 +88,10 @@ export const PdfGuideSidebar: React.FC = () => {
           norm_y1: sh.norm_y1,
           norm_x2: sh.norm_x2,
           norm_y2: sh.norm_y2,
+          text: sh.text || '',
+          font_size: sh.font_size || 14,
+          has_fill: sh.has_fill || false,
+          stroke_width: sh.stroke_width || 2,
         })),
       };
 
@@ -117,52 +122,6 @@ export const PdfGuideSidebar: React.FC = () => {
     document.body.removeChild(a);
   };
 
-  // Export vector flattened PDF
-  const handleExportPdf = async () => {
-    if (!docInfo) return;
-    setIsExportingPdf(true);
-    try {
-      const payload = {
-        doc_id: docInfo.doc_id,
-        current_page: currentPage,
-        badge_size: badgeSize,
-        steps: steps.map((s) => ({
-          id: s.id,
-          step_number: s.step_number,
-          norm_x: s.norm_x,
-          norm_y: s.norm_y,
-          title: s.title,
-          description: s.description,
-          color: s.color,
-        })),
-        shapes: shapes.map((sh) => ({
-          id: sh.id,
-          type: sh.type,
-          color: sh.color,
-          norm_x1: sh.norm_x1,
-          norm_y1: sh.norm_y1,
-          norm_x2: sh.norm_x2,
-          norm_y2: sh.norm_y2,
-        })),
-      };
-
-      const res = await fetch('/api/pdf_tools/export_flattened_pdf', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) throw new Error('PDF Export failed');
-
-      const blob = await res.blob();
-      triggerDownload(blob, `Guide_${docInfo.filename.replace('.pdf', '')}_p${currentPage}.pdf`);
-    } catch (err) {
-      console.error('Failed to export flattened PDF:', err);
-    } finally {
-      setIsExportingPdf(false);
-    }
-  };
-
   // Export SOP DOCX Guide
   const handleExportDocx = async () => {
     if (!docInfo) return;
@@ -190,6 +149,10 @@ export const PdfGuideSidebar: React.FC = () => {
           norm_y1: sh.norm_y1,
           norm_x2: sh.norm_x2,
           norm_y2: sh.norm_y2,
+          text: sh.text || '',
+          font_size: sh.font_size || 14,
+          has_fill: sh.has_fill || false,
+          stroke_width: sh.stroke_width || 2,
         })),
       };
 
@@ -398,14 +361,14 @@ export const PdfGuideSidebar: React.FC = () => {
           Export Document
         </div>
 
-        {/* 1. Flattened PDF Button */}
+        {/* 1. Export to PDF Button */}
         <button
-          onClick={handleExportPdf}
+          onClick={exportPdf}
           disabled={isExportingPdf || !docInfo}
-          className="w-full flex items-center justify-center gap-2 py-1.5 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 font-medium text-xs transition disabled:opacity-50"
+          className="w-full flex items-center justify-center gap-2 py-1.5 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 font-medium text-xs transition disabled:opacity-50 cursor-pointer"
         >
           {isExportingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileDown className="w-3.5 h-3.5 text-blue-400" />}
-          <span>{isExportingPdf ? 'Exporting PDF...' : 'Flattened PDF (Vector)'}</span>
+          <span>{isExportingPdf ? 'Exporting PDF...' : 'Export to PDF'}</span>
         </button>
 
         {/* 2. SOP Guide DOCX Button */}

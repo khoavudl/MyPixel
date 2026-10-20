@@ -289,6 +289,11 @@ def test_true_redaction_and_box_nofill():
     redact_rect = fitz.Rect(0.1 * pw, 0.1 * ph, 0.5 * pw, 0.4 * ph)
     extracted_text = page.get_text("text", clip=redact_rect).strip()
     assert extracted_text == "", "Underlying text under blur shape MUST be physically purged by true redaction"
+
+    # Verify custom text note is preserved in exported PDF
+    text_rect = fitz.Rect(0.5 * pw, 0.1 * ph, 0.8 * pw, 0.3 * ph)
+    extracted_custom_text = page.get_text("text", clip=text_rect).strip()
+    assert "Critical Note" in extracted_custom_text, "User typed text note MUST be rendered in exported PDF"
     doc.close()
 
 

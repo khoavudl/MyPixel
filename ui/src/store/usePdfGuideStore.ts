@@ -31,6 +31,7 @@ interface PdfGuideState {
   selectedShapeId: string | null;
   hoveredStepId: string | null;
   isSidebarOpen: boolean;
+  isExportingPdf: boolean;
 
   // History for Undo / Redo
   history: { steps: StepBadge[]; shapes: GuideShape[] }[];
@@ -46,6 +47,7 @@ interface PdfGuideState {
   setCurrentDpi: (dpi: number) => void;
   loadPageImage: (docId: string, pageNum: number, dpi?: number) => Promise<void>;
   uploadPdf: (file: File) => Promise<void>;
+  exportPdf: () => Promise<void>;
   setActiveTool: (tool: GuideToolMode) => void;
   setActiveColor: (color: StepBadgeColor) => void;
   setBadgeSize: (size: number) => void;
@@ -97,6 +99,7 @@ export const usePdfGuideStore = create<PdfGuideState>((set, get) => ({
   selectedShapeId: null,
   hoveredStepId: null,
   isSidebarOpen: false,
+  isExportingPdf: false,
 
   history: [],
   future: [],
@@ -172,6 +175,64 @@ export const usePdfGuideStore = create<PdfGuideState>((set, get) => ({
       await get().loadPageImage(doc.doc_id, 1, get().currentDpi || 300);
     } catch (err: any) {
       set({ error: err.message || 'Failed to upload PDF', isUploading: false });
+    }
+  },
+
+  exportPdf: async () => {
+    const { docInfo, currentPage, badgeSize, steps, shapes } = get();
+    if (!docInfo) return;
+    set({ isExportingPdf: true });
+    try {
+      const payload = {
+        doc_id: docInfo.doc_id,
+        current_page: currentPage,
+        badge_size: badgeSize,
+        steps: steps.map((s) => ({
+          id: s.id,
+          step_number: s.step_number,
+          norm_x: s.norm_x,
+          norm_y: s.norm_y,
+          title: s.title,
+          description: s.description,
+          color: s.color,
+        })),
+        shapes: shapes.map((sh) => ({
+          id: sh.id,
+          type: sh.type,
+          color: sh.color,
+          norm_x1: sh.norm_x1,
+          norm_y1: sh.norm_y1,
+          norm_x2: sh.norm_x2,
+          norm_y2: sh.norm_y2,
+          text: sh.text || '',
+          font_size: sh.font_size || 14,
+          has_fill: sh.has_fill || false,
+          stroke_width: sh.stroke_width || 2,
+        })),
+      };
+
+      const res = await fetch('/api/pdf_tools/export_flattened_pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) throw new Error('PDF Export failed');
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Guide_${docInfo.filename.replace('.pdf', '')}_p${currentPage}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err: any) {
+      console.error('Failed to export flattened PDF:', err);
+      set({ error: err.message || 'Export PDF failed' });
+    } finally {
+      set({ isExportingPdf: false });
     }
   },
 
