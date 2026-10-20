@@ -23,6 +23,98 @@ from artdiff.ingest.pdf_renderer import render_page
 from server.config import OUT_DIR
 
 
+def derive_transform_from_report(
+    rep_data: dict[str, Any],
+    b_w_mm: float,
+    b_h_mm: float,
+    v_w_mm: float,
+    v_h_mm: float,
+    px_per_mm: float = 11.811,
+) -> tuple[dict[str, Any] | None, list[float]]:
+    """Derive initial alignment transform and crop bbox from report.json.
+    
+    Priority 1: Existing manual_transform (if run was already manually aligned).
+    Priority 2: Auto-calculated alignment from Task 2/3 frame detect/crop + Task 5 sub-pixel align.
+    """
+    initial_crop_bbox_mm = [0.0, 0.0, float(b_w_mm), float(b_h_mm)]
+    initial_transform = None
+
+    # Priority 1: Existing manual transform
+    if "manual_transform" in rep_data and rep_data["manual_transform"]:
+        initial_transform = rep_data["manual_transform"]
+        if "crop_bbox_mm" in initial_transform and initial_transform["crop_bbox_mm"]:
+            initial_crop_bbox_mm = [float(v) for v in initial_transform["crop_bbox_mm"]]
+        return initial_transform, initial_crop_bbox_mm
+
+    # Priority 2: Auto-alignment from Task 2, 3, 5
+    tasks = rep_data.get("tasks", {})
+    t3 = tasks.get("task3_crop", {})
+    t2 = tasks.get("task2_frame_detect", {})
+
+    b_bbox = None
+    v_bbox = None
+
+    if t3.get("brand_confirmed_frame", {}).get("bbox_mm"):
+        b_bbox = t3["brand_confirmed_frame"]["bbox_mm"]
+    elif t2.get("brand", {}).get("selected", {}).get("bbox_mm"):
+        b_bbox = t2["brand"]["selected"]["bbox_mm"]
+
+    if t3.get("vendor_confirmed_frame", {}).get("bbox_mm"):
+        v_bbox = t3["vendor_confirmed_frame"]["bbox_mm"]
+    elif t2.get("vendor", {}).get("selected", {}).get("bbox_mm"):
+        v_bbox = t2["vendor"]["selected"]["bbox_mm"]
+
+    if b_bbox and len(b_bbox) == 4 and b_bbox[2] > 0 and b_bbox[3] > 0:
+        bx, by, bw, bh = [float(v) for v in b_bbox]
+        initial_crop_bbox_mm = [bx, by, bw, bh]
+    else:
+        bx, by, bw, bh = 0.0, 0.0, float(b_w_mm), float(b_h_mm)
+
+    if v_bbox and len(v_bbox) == 4 and v_bbox[2] > 0 and v_bbox[3] > 0:
+        vx, vy, vw, vh = [float(v) for v in v_bbox]
+    else:
+        vx, vy, vw, vh = 0.0, 0.0, float(v_w_mm), float(v_h_mm)
+
+    # Sub-pixel affine matrix from Task 5 (if succeeded)
+    t5 = tasks.get("task5_align", {})
+    mat = t5.get("transform")
+    if mat and len(mat) == 2 and len(mat[0]) >= 3 and len(mat[1]) >= 3:
+        m00, m01, m02 = float(mat[0][0]), float(mat[0][1]), float(mat[0][2])
+        m10, m11, m12 = float(mat[1][0]), float(mat[1][1]), float(mat[1][2])
+        dx_mm = m02 / px_per_mm
+        dy_mm = m12 / px_per_mm
+        scale_x = (bw / max(vw, 1e-4)) * math.sqrt(m00**2 + m10**2)
+        scale_y = (bh / max(vh, 1e-4)) * math.sqrt(m01**2 + m11**2)
+        scale = (scale_x + scale_y) / 2.0
+        rotation_deg = math.degrees(math.atan2(m10, m00))
+    else:
+        # Fallback if Task 5 didn't run (e.g. Size Gate failure)
+        dx_mm = 0.0
+        dy_mm = 0.0
+        scale = bw / max(vw, 1e-4)
+        rotation_deg = 0.0
+
+    rad = math.radians(rotation_deg)
+    cos_t = math.cos(rad)
+    sin_t = math.sin(rad)
+    delta_x = scale * (vx * cos_t - vy * sin_t)
+    delta_y = scale * (vx * sin_t + vy * cos_t)
+
+    offset_x_mm = bx + dx_mm - delta_x
+    offset_y_mm = by + dy_mm - delta_y
+
+    initial_transform = {
+        "offset_x_mm": round(offset_x_mm, 4),
+        "offset_y_mm": round(offset_y_mm, 4),
+        "scale_x": round(scale, 6),
+        "scale_y": round(scale, 6),
+        "rotation_deg": round(rotation_deg, 3),
+        "crop_bbox_mm": [round(v, 4) for v in initial_crop_bbox_mm],
+    }
+
+    return initial_transform, initial_crop_bbox_mm
+
+
 def prepare_alignment(
     brand_path: str | Path,
     vendor_path: str | Path,
@@ -34,8 +126,8 @@ def prepare_alignment(
     
     Returns preview image URLs and physical dimensions in mm.
     """
-    brand_file = Path(brand_path)
-    vendor_file = Path(vendor_path)
+    dest_brand = Path(brand_path)
+    dest_vendor = Path(vendor_path)
 
     if not run_id:
         run_id = f"manual_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S_%f')}"
@@ -44,13 +136,16 @@ def prepare_alignment(
     upload_dir = run_dir / "uploads"
     upload_dir.mkdir(parents=True, exist_ok=True)
 
-    dest_brand = upload_dir / brand_file.name
-    dest_vendor = upload_dir / vendor_file.name
+    dest_brand_upload = upload_dir / dest_brand.name
+    dest_vendor_upload = upload_dir / dest_vendor.name
 
-    if brand_file.resolve() != dest_brand.resolve():
-        shutil.copy2(brand_file, dest_brand)
-    if vendor_file.resolve() != dest_vendor.resolve():
-        shutil.copy2(vendor_file, dest_vendor)
+    if dest_brand.resolve() != dest_brand_upload.resolve():
+        shutil.copy2(dest_brand, dest_brand_upload)
+    if dest_vendor.resolve() != dest_vendor_upload.resolve():
+        shutil.copy2(dest_vendor, dest_vendor_upload)
+
+    dest_brand = dest_brand_upload
+    dest_vendor = dest_vendor_upload
 
     # Render preview pages at 150 DPI (approx 5.9 px/mm) for smooth 60 FPS UI interaction
     preview_px_per_mm = 5.9055  # 150 DPI
@@ -92,13 +187,9 @@ def prepare_alignment(
         try:
             with open(existing_report, "r", encoding="utf-8") as f:
                 rep_data = json.load(f)
-                b_cand = rep_data.get("tasks", {}).get("task2_frame_detect", {}).get("brand", {}).get("selected")
-                if b_cand and b_cand.get("bbox_mm"):
-                    initial_crop_bbox_mm = [float(v) for v in b_cand["bbox_mm"]]
-                if "manual_transform" in rep_data:
-                    initial_transform = rep_data["manual_transform"]
-                    if "crop_bbox_mm" in initial_transform and initial_transform["crop_bbox_mm"]:
-                        initial_crop_bbox_mm = [float(v) for v in initial_transform["crop_bbox_mm"]]
+                initial_transform, initial_crop_bbox_mm = derive_transform_from_report(
+                    rep_data, float(b_w_mm), float(b_h_mm), float(v_w_mm), float(v_h_mm)
+                )
         except Exception:
             pass
 

@@ -11,7 +11,6 @@ import {
   Layers,
   ArrowLeft,
   Loader2,
-  Info,
 } from 'lucide-react';
 import { useInspectionStore } from '../store/useInspectionStore';
 import { RunStatusResponse } from '../types';
@@ -787,22 +786,6 @@ export const ManualAlignView: React.FC = () => {
               Trim Artboard Region ({cropBoxMm[2].toFixed(1)} × {cropBoxMm[3].toFixed(1)} mm)
             </div>
           </div>
-        </div>
-
-        {/* Floating Quick Help Guide */}
-        <div className="absolute bottom-4 left-4 bg-slate-900/90 backdrop-blur-md border border-slate-800 p-3.5 rounded-2xl shadow-xl max-w-sm text-xs text-slate-300 pointer-events-none">
-          <div className="font-semibold text-white mb-2 flex items-center gap-1.5 text-xs">
-            <Info className="w-3.5 h-3.5 text-blue-400" />
-            <span>Quick Alignment Tips:</span>
-          </div>
-          <ul className="space-y-1.5 text-[11px] text-slate-400 leading-relaxed">
-            <li>• <b>Drag Vendor</b>: Click & drag floating layer to position over Brand.</li>
-            <li>• <b>Resize</b>: Drag any of the <b>4 corner handles</b> in/out to scale.</li>
-            <li>• <b>Shift + Wheel</b>: Scroll wheel with Shift to zoom Vendor only.</li>
-            <li>• <b>Keyboard</b>: <b>Arrow keys</b> nudge 1px (<b>Shift</b>: 10px, <b>Alt</b>: 0.1px).</li>
-            <li>• <b>Scale / Rotate keys</b>: <b>+ / -</b> scale 1%; <b>[ / ]</b> rotate 0.2°.</li>
-            <li>• <b>Difference mode</b>: Shift until aligned graphics turn <b>solid black</b>.</li>
-          </ul>
         </div>
 
         {/* Floating Viewport Zoom Controls */}

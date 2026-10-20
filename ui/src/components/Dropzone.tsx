@@ -117,6 +117,7 @@ export const Dropzone: React.FC = () => {
       setRunId(run.run_id);
       setRunStatus(statusData);
       setAnnotations(annData);
+      setManualAlignData(null);
 
       if (run.target_size_mm && run.target_size_mm.length === 2) {
         setTargetSizeMm(`${run.target_size_mm[0]}x${run.target_size_mm[1]}`);
@@ -230,6 +231,7 @@ export const Dropzone: React.FC = () => {
     clearLogs();
     setIsAnalyzing(true);
     setInspectionType('compare');
+    setManualAlignData(null);
     setViewMode('console');
 
     const formData = new FormData();

@@ -235,3 +235,66 @@ def test_realign_from_existing_manual_run(client, test_pdfs):
     assert round(status2["report"]["manual_transform"]["offset_x_mm"], 2) == 12.84
 
 
+def test_inherit_auto_crop_alignment_when_switching_to_manual(client, test_pdfs):
+    """Test switching from AutoCrop compare mode to manual align inherits auto alignment."""
+    brand_pdf, vendor_pdf = test_pdfs
+
+    # 1. Run automated AutoCrop compare
+    with open(brand_pdf, "rb") as fb, open(vendor_pdf, "rb") as fv:
+        analyze_res = client.post(
+            "/api/analyze",
+            data={"target_size_mm": "100x80", "brand_page": "1", "vendor_page": "1"},
+            files={
+                "brand_file": ("brand.pdf", fb, "application/pdf"),
+                "vendor_file": ("vendor.pdf", fv, "application/pdf"),
+            },
+        )
+    assert analyze_res.status_code == 200
+    run_id = analyze_res.json()["run_id"]
+
+    # Wait for pipeline to finish
+    with client.websocket_connect(f"/ws/runs/{run_id}") as ws:
+        for _ in range(30):
+            msg = ws.receive_json()
+            if msg.get("type") in ("complete", "error"):
+                break
+
+    status_res = client.get(f"/api/runs/{run_id}")
+    assert status_res.status_code == 200
+    assert status_res.json()["status"] == "PASS"
+
+    # 2. User in 4-way workspace clicks "Adjust Alignment" -> calls prepare endpoint
+    prep_res = client.get(f"/api/manual_align/prepare/{run_id}")
+    assert prep_res.status_code == 200
+    prep_data = prep_res.json()
+
+    # 3. Verify initial_transform is inherited from auto-alignment (NOT None, NOT 0)
+    init_tr = prep_data.get("initial_transform")
+    assert init_tr is not None, "initial_transform must be inherited from AutoCrop run"
+    assert "offset_x_mm" in init_tr
+    assert "offset_y_mm" in init_tr
+    assert "scale_x" in init_tr
+    assert round(init_tr["scale_x"], 1) == 1.0  # scale is ~1.0
+    assert len(prep_data["initial_crop_bbox_mm"]) == 4
+    # Crop box width should be ~100 mm and height ~80 mm
+    assert round(prep_data["initial_crop_bbox_mm"][2], 0) == 100.0
+    assert round(prep_data["initial_crop_bbox_mm"][3], 0) == 80.0
+
+    # 4. User applies micro-nudge (+0.1 mm) from inherited position
+    micro_nudged_x = init_tr["offset_x_mm"] + 0.1
+    payload = {
+        "run_id": run_id,
+        "transform": {
+            **init_tr,
+            "offset_x_mm": micro_nudged_x,
+        },
+        "crop_bbox_mm": prep_data["initial_crop_bbox_mm"],
+    }
+    apply_res = client.post("/api/manual_align/apply", json=payload)
+    assert apply_res.status_code == 200
+    apply_data = apply_res.json()
+    assert apply_data["status"] == "PASS"
+    assert round(apply_data["report"]["manual_transform"]["offset_x_mm"], 4) == round(micro_nudged_x, 4)
+
+
+
