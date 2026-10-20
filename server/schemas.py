@@ -100,6 +100,7 @@ class ManualTransform(BaseModel):
     scale_x: float = 1.0
     scale_y: float = 1.0
     rotation_deg: float = 0.0
+    crop_bbox_mm: list[float] | None = None
 
 
 class ManualAlignApplyRequest(BaseModel):

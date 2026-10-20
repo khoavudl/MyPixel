@@ -170,3 +170,68 @@ def test_brand_vendor_order_preserved_when_alphabetically_inverted(client, tmp_p
     assert round(rep["inputs"]["brand"]["page_size_mm"][0]) == 200
     assert round(rep["inputs"]["vendor"]["page_size_mm"][0]) == 100
 
+
+def test_realign_from_existing_manual_run(client, test_pdfs):
+    """Test re-entering manual alignment from 4-way workspace preserves transforms."""
+    brand_pdf, vendor_pdf = test_pdfs
+
+    # 1. Initial prepare
+    with open(brand_pdf, "rb") as fb, open(vendor_pdf, "rb") as fv:
+        prep_res = client.post(
+            "/api/manual_align/prepare",
+            files={
+                "brand_file": ("brand.pdf", fb, "application/pdf"),
+                "vendor_file": ("vendor.pdf", fv, "application/pdf"),
+            },
+        )
+    assert prep_res.status_code == 200
+    run_id = prep_res.json()["run_id"]
+
+    # 2. First apply alignment with specific values
+    payload1 = {
+        "run_id": run_id,
+        "transform": {
+            "offset_x_mm": 12.34,
+            "offset_y_mm": 5.67,
+            "scale_x": 1.05,
+            "scale_y": 1.05,
+            "rotation_deg": 1.5,
+        },
+        "crop_bbox_mm": [5.0, 5.0, 95.0, 75.0],
+    }
+    apply_res1 = client.post("/api/manual_align/apply", json=payload1)
+    assert apply_res1.status_code == 200
+
+    # 3. User navigates back to manual align: GET /api/manual_align/prepare/{run_id}
+    reenter_res = client.get(f"/api/manual_align/prepare/{run_id}")
+    assert reenter_res.status_code == 200
+    reenter_data = reenter_res.json()
+
+    # Verify initial_transform is populated with exact previous values
+    init_tr = reenter_data.get("initial_transform")
+    assert init_tr is not None
+    assert round(init_tr["offset_x_mm"], 2) == 12.34
+    assert round(init_tr["offset_y_mm"], 2) == 5.67
+    assert round(init_tr["scale_x"], 2) == 1.05
+    assert round(init_tr["rotation_deg"], 1) == 1.5
+    assert round(reenter_data["initial_crop_bbox_mm"][0], 1) == 5.0
+    assert round(reenter_data["initial_crop_bbox_mm"][1], 1) == 5.0
+
+    # 4. Apply a micro-adjustment (second apply)
+    payload2 = {
+        "run_id": run_id,
+        "transform": {
+            "offset_x_mm": 12.84,  # shifted +0.5 mm
+            "offset_y_mm": 5.67,
+            "scale_x": 1.05,
+            "scale_y": 1.05,
+            "rotation_deg": 1.5,
+        },
+        "crop_bbox_mm": [5.0, 5.0, 95.0, 75.0],
+    }
+    apply_res2 = client.post("/api/manual_align/apply", json=payload2)
+    assert apply_res2.status_code == 200
+    status2 = apply_res2.json()
+    assert round(status2["report"]["manual_transform"]["offset_x_mm"], 2) == 12.84
+
+

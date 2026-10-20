@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Hand,
   Square,
@@ -12,6 +12,8 @@ import {
   Eye,
   ListFilter,
   Home,
+  SlidersHorizontal,
+  Loader2,
 } from 'lucide-react';
 import { useInspectionStore } from '../store/useInspectionStore';
 
@@ -43,12 +45,45 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     loupeScaleFactor,
     inspectionType,
     runStatus,
+    setViewMode,
+    manualAlignData,
+    setManualAlignData,
   } = useInspectionStore();
+
+  const [isLoadingManual, setIsLoadingManual] = useState(false);
 
   const isSingle =
     inspectionType === 'single' ||
     runStatus?.report?.mode === 'single' ||
     runStatus?.report?.run_type === 'single';
+
+  const isManualMode =
+    runStatus?.report?.mode === 'manual_align' ||
+    Boolean(runId?.startsWith('manual_')) ||
+    Boolean(runStatus?.report?.manual_transform);
+
+  const handleAdjustAlignment = async () => {
+    if (manualAlignData && manualAlignData.run_id === runId) {
+      setViewMode('manual_align');
+      return;
+    }
+    if (!runId) return;
+    setIsLoadingManual(true);
+    try {
+      const res = await fetch(`/api/manual_align/prepare/${runId}`);
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.detail || 'Failed to prepare manual alignment workspace');
+      }
+      const data = await res.json();
+      setManualAlignData(data);
+      setViewMode('manual_align');
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Cannot enter manual alignment');
+    } finally {
+      setIsLoadingManual(false);
+    }
+  };
 
   const zoomPercent = Math.round(viewport.zoom * 100);
 
@@ -88,6 +123,27 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             </span>
           )}
         </div>
+
+        {/* Button to enter / return to Manual Alignment */}
+        {!isSingle && (
+          <button
+            onClick={handleAdjustAlignment}
+            disabled={isLoadingManual}
+            title={
+              isManualMode
+                ? 'Back to Manual Alignment to fine-tune position, scale, or rotation'
+                : 'Switch to Manual Alignment staging canvas to fine-tune alignment'
+            }
+            className="px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 hover:text-amber-200 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+          >
+            {isLoadingManual ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+            )}
+            <span>{isManualMode ? 'Adjust Alignment' : 'Manual Align'}</span>
+          </button>
+        )}
       </div>
 
       {/* Center: Tools & Viewport Controls */}

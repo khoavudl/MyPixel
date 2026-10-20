@@ -33,6 +33,7 @@ export interface RunReport {
   error?: string | null;
   tasks?: Record<string, unknown>;
   inputs?: Record<string, unknown>;
+  manual_transform?: Record<string, unknown> | null;
 }
 
 
@@ -107,6 +108,7 @@ export interface ManualAlignPrepareData {
     scale_x: number;
     scale_y: number;
     rotation_deg: number;
+    crop_bbox_mm?: number[];
   } | null;
 }
 

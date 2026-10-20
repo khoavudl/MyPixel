@@ -180,21 +180,56 @@ async def prepare_manual_align_from_run(run_id: str) -> ManualAlignPrepareRespon
     brand_page = 1
     vendor_page = 1
 
-    report_file = run_dir / "report.json"
-    if report_file.is_file():
+    # 1. First priority: read staging_meta.json to guarantee exact file identity
+    meta_file = run_dir / "staging_meta.json"
+    if meta_file.is_file():
         try:
-            with open(report_file, "r", encoding="utf-8") as f:
-                rep = json.load(f)
-                b_info = rep.get("inputs", {}).get("brand", {})
-                v_info = rep.get("inputs", {}).get("vendor", {})
-                if b_info.get("pdf_path") and Path(b_info["pdf_path"]).is_file():
-                    brand_path = Path(b_info["pdf_path"])
-                if v_info.get("pdf_path") and Path(v_info["pdf_path"]).is_file():
-                    vendor_path = Path(v_info["pdf_path"])
-                brand_page = int(b_info.get("page_number", 1))
-                vendor_page = int(v_info.get("page_number", 1))
+            with open(meta_file, "r", encoding="utf-8") as f:
+                meta = json.load(f)
+                bp = meta.get("brand_path")
+                vp = meta.get("vendor_path")
+                if bp and Path(bp).is_file():
+                    brand_path = Path(bp)
+                elif bp and (upload_dir / Path(bp).name).is_file():
+                    brand_path = upload_dir / Path(bp).name
+                if vp and Path(vp).is_file():
+                    vendor_path = Path(vp)
+                elif vp and (upload_dir / Path(vp).name).is_file():
+                    vendor_path = upload_dir / Path(vp).name
+                if "brand_page" in meta:
+                    brand_page = int(meta["brand_page"])
+                if "vendor_page" in meta:
+                    vendor_page = int(meta["vendor_page"])
         except Exception:
             pass
+
+    # 2. Second priority: read report.json
+    if not brand_path or not vendor_path:
+        report_file = run_dir / "report.json"
+        if report_file.is_file():
+            try:
+                with open(report_file, "r", encoding="utf-8") as f:
+                    rep = json.load(f)
+                    b_info = rep.get("inputs", {}).get("brand", {})
+                    v_info = rep.get("inputs", {}).get("vendor", {})
+                    if not brand_path:
+                        if b_info.get("pdf_path") and Path(b_info["pdf_path"]).is_file():
+                            brand_path = Path(b_info["pdf_path"])
+                        elif b_info.get("filename") and (upload_dir / b_info["filename"]).is_file():
+                            brand_path = upload_dir / b_info["filename"]
+                        elif b_info.get("pdf_path") and (upload_dir / Path(b_info["pdf_path"]).name).is_file():
+                            brand_path = upload_dir / Path(b_info["pdf_path"]).name
+                    if not vendor_path:
+                        if v_info.get("pdf_path") and Path(v_info["pdf_path"]).is_file():
+                            vendor_path = Path(v_info["pdf_path"])
+                        elif v_info.get("filename") and (upload_dir / v_info["filename"]).is_file():
+                            vendor_path = upload_dir / v_info["filename"]
+                        elif v_info.get("pdf_path") and (upload_dir / Path(v_info["pdf_path"]).name).is_file():
+                            vendor_path = upload_dir / Path(v_info["pdf_path"]).name
+                    brand_page = int(b_info.get("page_number", brand_page))
+                    vendor_page = int(v_info.get("page_number", vendor_page))
+            except Exception:
+                pass
 
     if not brand_path or not vendor_path:
         uploaded_files = sorted(list(upload_dir.iterdir()))

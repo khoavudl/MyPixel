@@ -20,9 +20,11 @@ export const ManualAlignView: React.FC = () => {
   const {
     manualAlignData,
     setViewMode,
+    runStatus,
     setRunStatus,
     setRunId,
     setInspectionType,
+    annotations,
     setAnnotations,
     setManualAlignData,
     resetViewport,
@@ -98,9 +100,31 @@ export const ManualAlignView: React.FC = () => {
   const [opacity, setOpacity] = useState(0.5);
   const [blendMode, setBlendMode] = useState<'normal' | 'difference' | 'duotone'>('difference');
 
+  // Check if there is an active inspection session we can return to
+  const hasActiveWorkspace = Boolean(
+    runStatus?.images?.brand_cropped || runStatus?.images?.single_image
+  );
+
+  const handleBack = () => {
+    if (hasActiveWorkspace) {
+      setViewMode('workspace');
+    } else {
+      setViewMode('setup');
+    }
+  };
+
   // Crop Box state on Brand (in mm)
   const [cropBoxMm] = useState<[number, number, number, number]>(
-    initial_crop_bbox_mm && initial_crop_bbox_mm[2] > 0
+    initial_transform?.crop_bbox_mm &&
+      initial_transform.crop_bbox_mm.length === 4 &&
+      initial_transform.crop_bbox_mm[2] > 0
+      ? [
+          initial_transform.crop_bbox_mm[0],
+          initial_transform.crop_bbox_mm[1],
+          initial_transform.crop_bbox_mm[2],
+          initial_transform.crop_bbox_mm[3],
+        ]
+      : initial_crop_bbox_mm && initial_crop_bbox_mm[2] > 0
       ? initial_crop_bbox_mm
       : [0, 0, brand_size_mm[0], brand_size_mm[1]]
   );
@@ -437,7 +461,9 @@ export const ManualAlignView: React.FC = () => {
       setRunId(run_id);
       setRunStatus(statusResponse);
       setInspectionType('compare');
-      setAnnotations([]);
+      if (!annotations || annotations.length === 0) {
+        setAnnotations([]);
+      }
       setManualAlignData({
         ...manualAlignData,
         initial_transform: {
@@ -446,6 +472,12 @@ export const ManualAlignView: React.FC = () => {
           scale_x: Number(scale.toFixed(6)),
           scale_y: Number(scale.toFixed(6)),
           rotation_deg: Number(rotationDeg.toFixed(3)),
+          crop_bbox_mm: [
+            Number(cropBoxMm[0].toFixed(2)),
+            Number(cropBoxMm[1].toFixed(2)),
+            Number(cropBoxMm[2].toFixed(2)),
+            Number(cropBoxMm[3].toFixed(2)),
+          ],
         },
       });
       resetViewport();
@@ -470,11 +502,14 @@ export const ManualAlignView: React.FC = () => {
         {/* Left: Title & Back */}
         <div className="flex items-center gap-3">
           <button
-            onClick={() => setViewMode('setup')}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
-            title="Back to Setup"
+            onClick={handleBack}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
+            title={hasActiveWorkspace ? 'Back to 4-Way Workspace' : 'Back to Setup'}
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-4 h-4" />
+            <span className="hidden sm:inline">
+              {hasActiveWorkspace ? 'Back to Workspace' : 'Setup'}
+            </span>
           </button>
 
           <div className="flex items-center gap-2">

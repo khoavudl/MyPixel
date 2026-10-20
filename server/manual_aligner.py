@@ -97,6 +97,8 @@ def prepare_alignment(
                     initial_crop_bbox_mm = [float(v) for v in b_cand["bbox_mm"]]
                 if "manual_transform" in rep_data:
                     initial_transform = rep_data["manual_transform"]
+                    if "crop_bbox_mm" in initial_transform and initial_transform["crop_bbox_mm"]:
+                        initial_crop_bbox_mm = [float(v) for v in initial_transform["crop_bbox_mm"]]
         except Exception:
             pass
 
