@@ -13,9 +13,9 @@ on:
           - 'windows'
           - 'macos'
       tag_name:
-        description: 'Tên phiên bản Release (ví dụ: v2.0.0):'
+        description: 'Tên phiên bản Release (ví dụ: v2.6.0):'
         required: true
-        default: 'v2.0.0'
+        default: 'v2.6.0'
         type: string
       publish_release:
         description: 'Tự động xuất bản GitHub Release public (cho tải không cần login):'
@@ -128,8 +128,8 @@ jobs:
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.event.inputs.tag_name || 'v2.0.0' }}
-          name: MyPixel ${{ github.event.inputs.tag_name || 'v2.0.0' }} (Standalone Desktop)
+          tag_name: ${{ github.event.inputs.tag_name || 'v2.6.0' }}
+          name: MyPixel ${{ github.event.inputs.tag_name || 'v2.6.0' }} (Standalone Desktop)
           body: |
             ## 📦 MyPixel - Packaging Artwork Inspection (Standalone Desktop)
 
