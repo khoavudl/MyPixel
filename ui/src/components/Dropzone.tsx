@@ -209,7 +209,7 @@ export const Dropzone: React.FC = () => {
 
         if (!res.ok) {
           const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.detail || 'Không thể khởi tạo phiên căn chỉnh thủ công');
+          throw new Error(errData.detail || 'Failed to initialize manual alignment session');
         }
 
         const data = await res.json();
@@ -790,7 +790,7 @@ export const Dropzone: React.FC = () => {
                     }`}
                   >
                     <Crop className="w-3.5 h-3.5" />
-                    <span>Auto-crop Artboard (WxH)</span>
+                    <span>AutoCrop</span>
                   </button>
                   <button
                     type="button"
@@ -802,7 +802,7 @@ export const Dropzone: React.FC = () => {
                     }`}
                   >
                     <Maximize className="w-3.5 h-3.5" />
-                    <span>Full Page Sheet (Toàn Trang)</span>
+                    <span>Full Page</span>
                   </button>
                   <button
                     type="button"
@@ -814,7 +814,7 @@ export const Dropzone: React.FC = () => {
                     }`}
                   >
                     <Sliders className="w-3.5 h-3.5" />
-                    <span>Manual Interactive (Căn Chỉnh Thủ Công)</span>
+                    <span>ManualCrop</span>
                   </button>
                 </div>
               </div>
@@ -840,14 +840,14 @@ export const Dropzone: React.FC = () => {
                 <div className="flex items-center gap-2 text-xs text-purple-300 bg-purple-500/10 border border-purple-500/20 px-3.5 py-2 rounded-xl">
                   <Sparkles className="w-4 h-4 shrink-0 text-purple-400" />
                   <span>
-                    Full Page Sheet: Automatically aligns and compares the entire sheet canvas (no W×H needed). Ideal for folding carton nets, irregular dielines, and dimension leader lines.
+                    Full Page: Automatically aligns and compares the entire sheet canvas (no W×H needed). Ideal for folding carton nets, irregular dielines, and dimension leader lines.
                   </span>
                 </div>
               ) : (
                 <div className="flex items-center gap-2 text-xs text-amber-300 bg-amber-500/10 border border-amber-500/20 px-3.5 py-2 rounded-xl">
                   <Sliders className="w-4 h-4 shrink-0 text-amber-400" />
                   <span>
-                    Căn Chỉnh Thủ Công: Tự do kéo thả, phóng to thu nhỏ và căn khít 2 bản vẽ bằng mắt. Thích hợp cho bản vẽ kỹ thuật A4 thu nhỏ, hộp gấp/bình bản phức tạp hoặc file không chuẩn khổ. Bỏ qua hoàn toàn kiểm định kích thước.
+                    ManualCrop: Visually drag, scale, and align two files on an interactive canvas. Ideal for scaled engineering drawings (e.g. A4 proofs), complex folding carton nets, or irregular layouts. Bypasses size gate verification.
                   </span>
                 </div>
               )}
@@ -865,7 +865,7 @@ export const Dropzone: React.FC = () => {
               }`}
             >
               <Play className="w-4 h-4 fill-current" />
-              <span>{compareCropMode === 'manual' ? 'Vào Trạm Căn Chỉnh' : 'Start'}</span>
+              <span>{compareCropMode === 'manual' ? 'Open Manual Align' : 'Start'}</span>
             </button>
           </div>
         </div>

@@ -30,13 +30,13 @@ export const ManualAlignView: React.FC = () => {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-slate-400">
         <p className="text-base font-semibold text-slate-300 mb-4">
-          Chưa có dữ liệu phiên căn chỉnh thủ công.
+          No manual alignment session data available.
         </p>
         <button
           onClick={() => setViewMode('setup')}
           className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-semibold transition-all cursor-pointer"
         >
-          Quay lại trang chủ
+          Back to Home
         </button>
       </div>
     );
@@ -49,7 +49,6 @@ export const ManualAlignView: React.FC = () => {
     brand_size_mm,
     vendor_size_mm,
     brand_shape_px,
-    vendor_shape_px,
     initial_crop_bbox_mm,
     brand_filename,
     vendor_filename,
@@ -90,7 +89,53 @@ export const ManualAlignView: React.FC = () => {
   // Dragging / Transform interactions for Vendor
   const [isDraggingVendor, setIsDraggingVendor] = useState(false);
   const [isTransformingCorner, setIsTransformingCorner] = useState<string | null>(null);
-  const dragStartPosRef = useRef({ x: 0, y: 0, initialOffX: 0, initialOffY: 0, initialScale: 1.0 });
+  const dragStartPosRef = useRef<{
+    x: number;
+    y: number;
+    initialOffX: number;
+    initialOffY: number;
+    initialScale: number;
+    corner: string | null;
+    initialDist: number;
+    dirX: number;
+    dirY: number;
+    deltaXOpp: number;
+    deltaYOpp: number;
+  }>({
+    x: 0,
+    y: 0,
+    initialOffX: 0,
+    initialOffY: 0,
+    initialScale: 1.0,
+    corner: null,
+    initialDist: 1.0,
+    dirX: 1.0,
+    dirY: 1.0,
+    deltaXOpp: 0,
+    deltaYOpp: 0,
+  });
+
+  // Scale around Vendor center helper
+  const applyScaleAroundCenter = (targetScale: number) => {
+    const newScale = Math.max(0.05, Number(targetScale.toFixed(4)));
+    if (newScale === scale) return;
+
+    const Vw = vendor_size_mm[0];
+    const Vh = vendor_size_mm[1];
+    const rad = (rotationDeg * Math.PI) / 180;
+    const cosT = Math.cos(rad);
+    const sinT = Math.sin(rad);
+
+    const centerOffsetX = cosT * (Vw / 2) - sinT * (Vh / 2);
+    const centerOffsetY = sinT * (Vw / 2) + cosT * (Vh / 2);
+
+    const newOffX = offsetXmm + (scale - newScale) * centerOffsetX;
+    const newOffY = offsetYmm + (scale - newScale) * centerOffsetY;
+
+    setScale(newScale);
+    setOffsetXmm(Number(newOffX.toFixed(4)));
+    setOffsetYmm(Number(newOffY.toFixed(4)));
+  };
 
   // Applying state
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -140,10 +185,10 @@ export const ManualAlignView: React.FC = () => {
         setOffsetYmm((prev) => prev + stepMm);
       } else if (e.key === '+' || e.key === '=') {
         e.preventDefault();
-        setScale((prev) => Number((prev * 1.01).toFixed(4)));
+        applyScaleAroundCenter(scale * 1.01);
       } else if (e.key === '-' || e.key === '_') {
         e.preventDefault();
-        setScale((prev) => Math.max(0.1, Number((prev * 0.99).toFixed(4))));
+        applyScaleAroundCenter(scale * 0.99);
       } else if (e.key === '[' || e.key === '{') {
         e.preventDefault();
         setRotationDeg((prev) => Number((prev - 0.2).toFixed(2)));
@@ -155,7 +200,7 @@ export const ManualAlignView: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [pxPerMmBrand]);
+  }, [pxPerMmBrand, scale, offsetXmm, offsetYmm, rotationDeg, vendor_size_mm]);
 
   // Viewport Drag / Pan handler
   const handleViewportMouseDown = (e: React.MouseEvent) => {
@@ -187,10 +232,22 @@ export const ManualAlignView: React.FC = () => {
     }
 
     if (isTransformingCorner) {
-      const dxPx = (e.clientX - dragStartPosRef.current.x) / viewportZoom;
-      const initialW = vendor_shape_px[0] * dragStartPosRef.current.initialScale;
-      const newScale = Math.max(0.05, (initialW + dxPx * 2) / vendor_shape_px[0]);
-      setScale(Number(newScale.toFixed(4)));
+      const dx = e.clientX - dragStartPosRef.current.x;
+      const dy = e.clientY - dragStartPosRef.current.y;
+      const { initialDist, dirX, dirY, initialScale, initialOffX, initialOffY, deltaXOpp, deltaYOpp } = dragStartPosRef.current;
+
+      const deltaOutward = dx * dirX + dy * dirY;
+      const newDist = Math.max(1, initialDist + deltaOutward);
+      const ratio = newDist / initialDist;
+      const newScale = Math.max(0.05, Number((initialScale * ratio).toFixed(4)));
+
+      const newOffX = initialOffX + (initialScale - newScale) * deltaXOpp;
+      const newOffY = initialOffY + (initialScale - newScale) * deltaYOpp;
+
+      setScale(newScale);
+      setOffsetXmm(Number(newOffX.toFixed(4)));
+      setOffsetYmm(Number(newOffY.toFixed(4)));
+      return;
     }
   };
 
@@ -211,6 +268,12 @@ export const ManualAlignView: React.FC = () => {
       initialOffX: offsetXmm,
       initialOffY: offsetYmm,
       initialScale: scale,
+      corner: null,
+      initialDist: 1.0,
+      dirX: 1.0,
+      dirY: 1.0,
+      deltaXOpp: 0,
+      deltaYOpp: 0,
     };
   };
 
@@ -219,18 +282,73 @@ export const ManualAlignView: React.FC = () => {
     e.stopPropagation();
     if (e.button !== 0) return;
     setIsTransformingCorner(corner);
+
+    const Vw = vendor_size_mm[0];
+    const Vh = vendor_size_mm[1];
+    const rad = (rotationDeg * Math.PI) / 180;
+    const cosT = Math.cos(rad);
+    const sinT = Math.sin(rad);
+
+    // Opposite corner unrotated (u, v) and Active corner unrotated (u, v)
+    let uOpp = 0, vOpp = 0;
+    let uCur = 0, vCur = 0;
+
+    if (corner === 'se') {
+      uOpp = 0; vOpp = 0;
+      uCur = Vw; vCur = Vh;
+    } else if (corner === 'nw') {
+      uOpp = Vw; vOpp = Vh;
+      uCur = 0; vCur = 0;
+    } else if (corner === 'ne') {
+      uOpp = 0; vOpp = Vh;
+      uCur = Vw; vCur = 0;
+    } else if (corner === 'sw') {
+      uOpp = Vw; vOpp = 0;
+      uCur = 0; vCur = Vh;
+    }
+
+    const deltaXOpp = cosT * uOpp - sinT * vOpp;
+    const deltaYOpp = sinT * uOpp + cosT * vOpp;
+
+    const deltaXCur = cosT * uCur - sinT * vCur;
+    const deltaYCur = sinT * uCur + cosT * vCur;
+
+    // Vector from opposite corner to active corner in Brand mm
+    const vecMmX = scale * (deltaXCur - deltaXOpp);
+    const vecMmY = scale * (deltaYCur - deltaYOpp);
+
+    // In screen pixels
+    const vecPxX = vecMmX * pxPerMmBrand * viewportZoom;
+    const vecPxY = vecMmY * pxPerMmBrand * viewportZoom;
+    const initialDist = Math.max(1, Math.hypot(vecPxX, vecPxY));
+
     dragStartPosRef.current = {
       x: e.clientX,
       y: e.clientY,
       initialOffX: offsetXmm,
       initialOffY: offsetYmm,
       initialScale: scale,
+      corner,
+      initialDist,
+      dirX: vecPxX / initialDist,
+      dirY: vecPxY / initialDist,
+      deltaXOpp,
+      deltaYOpp,
     };
   };
 
-  // Wheel zoom on canvas viewport
+  // Wheel zoom on canvas viewport & Shift + Wheel for Vendor-only scale
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
+
+    if (e.shiftKey) {
+      // Zoom Vendor ONLY (around Vendor's center)
+      const scaleStep = e.deltaY < 0 ? 1.03 : 0.97;
+      applyScaleAroundCenter(scale * scaleStep);
+      return;
+    }
+
+    // Normal Viewport Zoom (both images)
     const zoomFactor = e.deltaY < 0 ? 1.08 : 0.92;
     const newZoom = Math.min(10.0, Math.max(0.05, viewportZoom * zoomFactor));
 
@@ -280,7 +398,7 @@ export const ManualAlignView: React.FC = () => {
 
       if (!res.ok) {
         const errJson = await res.json().catch(() => ({}));
-        throw new Error(errJson.detail || 'Lỗi khi áp dụng căn chỉnh thủ công');
+        throw new Error(errJson.detail || 'Failed to apply manual alignment');
       }
 
       const statusResponse: RunStatusResponse = await res.json();
@@ -311,7 +429,7 @@ export const ManualAlignView: React.FC = () => {
           <button
             onClick={() => setViewMode('setup')}
             className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
-            title="Quay lại cài đặt"
+            title="Back to Setup"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
@@ -323,7 +441,7 @@ export const ManualAlignView: React.FC = () => {
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold text-white tracking-wide uppercase">
-                  Trạm Căn Chỉnh Thủ Công
+                  Manual Alignment Workspace
                 </span>
                 <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
                   Mode 3
@@ -341,7 +459,7 @@ export const ManualAlignView: React.FC = () => {
           {/* Opacity Slider */}
           <div className="flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 text-xs">
             <Layers className="w-3.5 h-3.5 text-slate-400" />
-            <span className="text-slate-400 text-[11px]">Độ mờ:</span>
+            <span className="text-slate-400 text-[11px]">Opacity:</span>
             <input
               type="range"
               min="0"
@@ -365,7 +483,7 @@ export const ManualAlignView: React.FC = () => {
                   ? 'bg-amber-600 text-white font-semibold shadow-sm'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
-              title="Chế độ đảo màu sai khác: chỗ khớp sẽ biến thành màu đen, chỗ lệch sẽ sáng lên"
+              title="Difference blend: matching areas turn solid black, discrepancies highlight"
             >
               Difference
             </button>
@@ -376,7 +494,7 @@ export const ManualAlignView: React.FC = () => {
                   ? 'bg-blue-600 text-white font-semibold shadow-sm'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
-              title="Chế độ trong suốt bình thường"
+              title="Normal opacity overlay"
             >
               Opacity
             </button>
@@ -387,7 +505,7 @@ export const ManualAlignView: React.FC = () => {
                   ? 'bg-purple-600 text-white font-semibold shadow-sm'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
-              title="Chế độ Cyan / Đỏ (Anaglyph)"
+              title="Cyan / Red duotone anaglyph"
             >
               Cyan/Red
             </button>
@@ -397,8 +515,9 @@ export const ManualAlignView: React.FC = () => {
           <div className="flex items-center gap-1.5 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 text-xs">
             <span className="text-slate-400 text-[11px]">Scale:</span>
             <button
-              onClick={() => setScale((prev) => Math.max(0.05, Number((prev - 0.05).toFixed(4))))}
+              onClick={() => applyScaleAroundCenter(scale - 0.05)}
               className="w-5 h-5 rounded bg-slate-800 hover:bg-slate-700 flex items-center justify-center font-bold text-slate-300 cursor-pointer"
+              title="Scale down"
             >
               -
             </button>
@@ -406,18 +525,19 @@ export const ManualAlignView: React.FC = () => {
               {scale.toFixed(2)}×
             </span>
             <button
-              onClick={() => setScale((prev) => Number((prev + 0.05).toFixed(4)))}
+              onClick={() => applyScaleAroundCenter(scale + 0.05)}
               className="w-5 h-5 rounded bg-slate-800 hover:bg-slate-700 flex items-center justify-center font-bold text-slate-300 cursor-pointer"
+              title="Scale up"
             >
               +
             </button>
             {isVendorScaledDown && (
               <button
-                onClick={() => setScale(Number(sizeRatio.toFixed(4)))}
+                onClick={() => applyScaleAroundCenter(sizeRatio)}
                 className="ml-1 px-1.5 py-0.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 rounded text-[10px] font-medium border border-amber-500/30 cursor-pointer"
-                title={`Khớp tỷ lệ A4 về khổ thật (${sizeRatio.toFixed(2)}x)`}
+                title={`Fit A4 to 1:1 scale (${sizeRatio.toFixed(2)}×)`}
               >
-                Khớp A4
+                Fit A4
               </button>
             )}
           </div>
@@ -427,7 +547,7 @@ export const ManualAlignView: React.FC = () => {
             <button
               onClick={() => setRotationDeg((r) => Number(((r - 90 + 360) % 360).toFixed(1)))}
               className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer"
-              title="Xoay trái 90°"
+              title="Rotate left 90°"
             >
               <RotateCcw className="w-3.5 h-3.5" />
             </button>
@@ -437,7 +557,7 @@ export const ManualAlignView: React.FC = () => {
             <button
               onClick={() => setRotationDeg((r) => Number(((r + 90) % 360).toFixed(1)))}
               className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer"
-              title="Xoay phải 90°"
+              title="Rotate right 90°"
             >
               <RotateCw className="w-3.5 h-3.5" />
             </button>
@@ -455,7 +575,7 @@ export const ManualAlignView: React.FC = () => {
             }}
             className="px-3 py-1.5 text-xs text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
           >
-            Đặt lại (Reset)
+            Reset
           </button>
 
           <button
@@ -466,12 +586,12 @@ export const ManualAlignView: React.FC = () => {
             {isSubmitting ? (
               <>
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                <span>Đang xử lý nắn khít...</span>
+                <span>Processing & Warping...</span>
               </>
             ) : (
               <>
                 <CheckCircle2 className="w-4 h-4" />
-                <span>Xác Nhận & Vào Trạm Soi</span>
+                <span>Confirm & Enter Workspace</span>
               </>
             )}
           </button>
@@ -522,7 +642,7 @@ export const ManualAlignView: React.FC = () => {
               cursor: isDraggingVendor ? 'grabbing' : 'grab',
               filter: blendMode === 'duotone' ? 'sepia(1) saturate(5) hue-rotate(180deg)' : undefined,
             }}
-            className="border border-blue-400/80 hover:border-blue-400 group shadow-lg pointer-events-auto"
+            className="border-2 border-blue-400/90 hover:border-blue-300 group shadow-lg pointer-events-auto"
           >
             <img
               src={vendor_image}
@@ -531,29 +651,41 @@ export const ManualAlignView: React.FC = () => {
               draggable={false}
             />
 
-            {/* Corner Resize Handles */}
+            {/* Corner Resize Handles - Prominent, Easy-to-grab (w-6 h-6, 24px) */}
             <div
               onMouseDown={(e) => handleCornerMouseDown(e, 'se')}
-              className="absolute -right-2 -bottom-2 w-4 h-4 rounded-full bg-blue-500 border-2 border-white shadow-md cursor-se-resize hover:scale-125 transition-transform"
-            />
+              className="absolute -right-3 -bottom-3 w-6 h-6 rounded-full bg-blue-600 border-[2.5px] border-white shadow-xl cursor-se-resize hover:scale-125 hover:bg-blue-500 transition-transform z-30 flex items-center justify-center group/handle"
+              title="Resize Bottom-Right"
+            >
+              <div className="w-1.5 h-1.5 rounded-full bg-white pointer-events-none" />
+            </div>
             <div
               onMouseDown={(e) => handleCornerMouseDown(e, 'ne')}
-              className="absolute -right-2 -top-2 w-4 h-4 rounded-full bg-blue-500 border-2 border-white shadow-md cursor-ne-resize hover:scale-125 transition-transform"
-            />
+              className="absolute -right-3 -top-3 w-6 h-6 rounded-full bg-blue-600 border-[2.5px] border-white shadow-xl cursor-ne-resize hover:scale-125 hover:bg-blue-500 transition-transform z-30 flex items-center justify-center group/handle"
+              title="Resize Top-Right"
+            >
+              <div className="w-1.5 h-1.5 rounded-full bg-white pointer-events-none" />
+            </div>
             <div
               onMouseDown={(e) => handleCornerMouseDown(e, 'sw')}
-              className="absolute -left-2 -bottom-2 w-4 h-4 rounded-full bg-blue-500 border-2 border-white shadow-md cursor-sw-resize hover:scale-125 transition-transform"
-            />
+              className="absolute -left-3 -bottom-3 w-6 h-6 rounded-full bg-blue-600 border-[2.5px] border-white shadow-xl cursor-sw-resize hover:scale-125 hover:bg-blue-500 transition-transform z-30 flex items-center justify-center group/handle"
+              title="Resize Bottom-Left"
+            >
+              <div className="w-1.5 h-1.5 rounded-full bg-white pointer-events-none" />
+            </div>
             <div
               onMouseDown={(e) => handleCornerMouseDown(e, 'nw')}
-              className="absolute -left-2 -top-2 w-4 h-4 rounded-full bg-blue-500 border-2 border-white shadow-md cursor-nw-resize hover:scale-125 transition-transform"
-            />
+              className="absolute -left-3 -top-3 w-6 h-6 rounded-full bg-blue-600 border-[2.5px] border-white shadow-xl cursor-nw-resize hover:scale-125 hover:bg-blue-500 transition-transform z-30 flex items-center justify-center group/handle"
+              title="Resize Top-Left"
+            >
+              <div className="w-1.5 h-1.5 rounded-full bg-white pointer-events-none" />
+            </div>
 
             {/* Center Drag Badge */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
-              <div className="px-2 py-1 bg-blue-600/90 text-white rounded-md text-[10px] font-bold flex items-center gap-1 shadow-md">
+              <div className="px-2.5 py-1 bg-blue-600/90 text-white rounded-md text-[10px] font-bold flex items-center gap-1 shadow-md">
                 <Move className="w-3 h-3" />
-                <span>Kéo di chuyển Vendor</span>
+                <span>Drag Vendor Layer</span>
               </div>
             </div>
           </div>
@@ -570,23 +702,24 @@ export const ManualAlignView: React.FC = () => {
             className="border-2 border-dashed border-emerald-400 pointer-events-none select-none"
           >
             <div className="absolute top-2 left-2 px-2 py-0.5 bg-emerald-600/80 text-white rounded text-[10px] font-bold tracking-wide uppercase">
-              Vùng Artboard Thành Phẩm ({cropBoxMm[2].toFixed(1)} × {cropBoxMm[3].toFixed(1)} mm)
+              Trim Artboard Region ({cropBoxMm[2].toFixed(1)} × {cropBoxMm[3].toFixed(1)} mm)
             </div>
           </div>
         </div>
 
         {/* Floating Quick Help Guide */}
-        <div className="absolute bottom-4 left-4 bg-slate-900/90 backdrop-blur-md border border-slate-800 p-3 rounded-2xl shadow-xl max-w-sm text-xs text-slate-300 pointer-events-none">
-          <div className="font-semibold text-white mb-1.5 flex items-center gap-1.5 text-xs">
+        <div className="absolute bottom-4 left-4 bg-slate-900/90 backdrop-blur-md border border-slate-800 p-3.5 rounded-2xl shadow-xl max-w-sm text-xs text-slate-300 pointer-events-none">
+          <div className="font-semibold text-white mb-2 flex items-center gap-1.5 text-xs">
             <Info className="w-3.5 h-3.5 text-blue-400" />
-            <span>Mẹo căn khít nhanh:</span>
+            <span>Quick Alignment Tips:</span>
           </div>
-          <ul className="space-y-1 text-[11px] text-slate-400 leading-relaxed">
-            <li>• Bấm giữ chuột vào <b>Vendor</b> để kéo di chuyển đến vị trí Brand.</li>
-            <li>• Kéo <b>chấm tròn ở 4 góc</b> để phóng to/thu nhỏ kích thước.</li>
-            <li>• Bàn phím: <b>Mũi tên</b> nhích 1px (giữ <b>Shift</b>: 10px, <b>Alt</b>: 0.1px).</li>
-            <li>• Phím <b>[ / ]</b> để xoay nhẹ $0.2^\circ$; phím <b>+ / -</b> để co dãn $1\%$.</li>
-            <li>• Chế độ <b>Difference</b>: Di chuyển đến khi hình <b>chìm vào màu đen</b> là chuẩn!</li>
+          <ul className="space-y-1.5 text-[11px] text-slate-400 leading-relaxed">
+            <li>• <b>Drag Vendor</b>: Click & drag floating layer to position over Brand.</li>
+            <li>• <b>Resize</b>: Drag any of the <b>4 corner handles</b> in/out to scale.</li>
+            <li>• <b>Shift + Wheel</b>: Scroll wheel with Shift to zoom Vendor only.</li>
+            <li>• <b>Keyboard</b>: <b>Arrow keys</b> nudge 1px (<b>Shift</b>: 10px, <b>Alt</b>: 0.1px).</li>
+            <li>• <b>Scale / Rotate keys</b>: <b>+ / -</b> scale 1%; <b>[ / ]</b> rotate 0.2°.</li>
+            <li>• <b>Difference mode</b>: Shift until aligned graphics turn <b>solid black</b>.</li>
           </ul>
         </div>
 
@@ -595,7 +728,7 @@ export const ManualAlignView: React.FC = () => {
           <button
             onClick={() => setViewportZoom((z) => Math.max(0.1, z * 0.85))}
             className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer"
-            title="Thu nhỏ Viewport"
+            title="Zoom Out Viewport"
           >
             <ZoomOut className="w-4 h-4" />
           </button>
@@ -605,7 +738,7 @@ export const ManualAlignView: React.FC = () => {
           <button
             onClick={() => setViewportZoom((z) => Math.min(8.0, z * 1.15))}
             className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer"
-            title="Phóng to Viewport"
+            title="Zoom In Viewport"
           >
             <ZoomIn className="w-4 h-4" />
           </button>
@@ -624,7 +757,7 @@ export const ManualAlignView: React.FC = () => {
               });
             }}
             className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer"
-            title="Vừa màn hình (Fit)"
+            title="Fit to Screen"
           >
             <Maximize2 className="w-4 h-4" />
           </button>
@@ -633,7 +766,7 @@ export const ManualAlignView: React.FC = () => {
         {/* Error Alert Modal if Submission Fails */}
         {errorMsg && (
           <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-red-950/90 border border-red-500/40 px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2 text-xs text-red-200 z-50 animate-bounce">
-            <span className="font-semibold text-red-300">Lỗi:</span>
+            <span className="font-semibold text-red-300">Error:</span>
             <span>{errorMsg}</span>
             <button
               onClick={() => setErrorMsg(null)}

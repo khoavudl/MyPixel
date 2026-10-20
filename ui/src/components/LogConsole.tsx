@@ -125,14 +125,14 @@ export const LogConsole: React.FC = () => {
       const res = await fetch(`/api/manual_align/prepare/${runId}`);
       if (!res.ok) {
         const errJson = await res.json().catch(() => ({}));
-        throw new Error(errJson.detail || 'Không thể chuẩn bị dữ liệu căn chỉnh thủ công');
+        throw new Error(errJson.detail || 'Failed to prepare manual alignment data');
       }
       const data = await res.json();
       setManualAlignData(data);
       setViewMode('manual_align');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      alert('Lỗi: ' + msg);
+      alert('Error: ' + msg);
     } finally {
       setIsSwitchingManual(false);
     }
@@ -278,9 +278,9 @@ export const LogConsole: React.FC = () => {
             <div className="flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
               <div className="text-xs text-red-200 leading-relaxed">
-                <div className="font-bold text-red-300 mb-0.5">Pipeline dừng lại: Không tự động chốt được khung hoặc lệch kích thước</div>
+                <div className="font-bold text-red-300 mb-0.5">Pipeline Paused: Frame not auto-confirmed or dimension mismatch</div>
                 <span>
-                  Hệ thống không tìm thấy khung hoặc độ tin cậy chưa đạt 90%. Bạn có thể bấm nút bên phải để <b>Căn Chỉnh Thủ Công (Manual Align)</b> kéo thả 2 bản vẽ bằng mắt.
+                  The system could not detect high-confidence frames (≥90%). You can switch to <b>Manual Align</b> to visually match and overlay the two files.
                 </span>
               </div>
             </div>
@@ -293,12 +293,12 @@ export const LogConsole: React.FC = () => {
               {isSwitchingManual ? (
                 <>
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>Đang nạp dữ liệu...</span>
+                  <span>Loading...</span>
                 </>
               ) : (
                 <>
                   <Sliders className="w-4 h-4" />
-                  <span>Chuyển Sang Căn Chỉnh Thủ Công</span>
+                  <span>Switch to Manual Align</span>
                 </>
               )}
             </button>
@@ -322,7 +322,7 @@ export const LogConsole: React.FC = () => {
               className="px-4 py-2 text-xs font-semibold text-amber-300 hover:text-white bg-amber-600/20 hover:bg-amber-600/40 border border-amber-500/30 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
             >
               <Sliders className="w-3.5 h-3.5 text-amber-400" />
-              <span>Căn chỉnh thủ công</span>
+              <span>Manual Align</span>
             </button>
           )}
 
