@@ -10,7 +10,9 @@ export const PdfGuideDropzone: React.FC = () => {
   const handleFiles = (files: FileList | null) => {
     if (!files || files.length === 0) return;
     const file = files[0];
-    if (file.name.toLowerCase().endsWith('.pdf')) {
+    const name = file.name.toLowerCase();
+    const validExts = ['.pdf', '.png', '.jpg', '.jpeg', '.bmp', '.webp', '.tif', '.tiff'];
+    if (validExts.some((ext) => name.endsWith(ext))) {
       uploadPdf(file);
     }
   };
@@ -47,15 +49,15 @@ export const PdfGuideDropzone: React.FC = () => {
       <div className="max-w-xl w-full text-center space-y-6">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-semibold uppercase tracking-wider">
           <Sparkles className="w-3.5 h-3.5" />
-          Mini Tool • Standalone Studio
+          Editor Toolbox • Standalone
         </div>
 
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-white mb-2">
-            PDF Guide Studio
+            Editor Toolbox
           </h2>
           <p className="text-sm text-slate-400">
-            Quickly view any PDF, crop regions, and stamp auto-increment badges (①, ②, ③) to generate visual SOPs and manual guides in seconds.
+            Quickly view, crop, annotate any PDF or image (JPEG, PNG, BMP, TIFF), and stamp auto-increment badges (①, ②, ③) to generate visual guides in seconds.
           </p>
         </div>
 
@@ -79,7 +81,7 @@ export const PdfGuideDropzone: React.FC = () => {
           <input
             ref={fileInputRef}
             type="file"
-            accept=".pdf"
+            accept=".pdf,.png,.jpg,.jpeg,.bmp,.webp,.tif,.tiff,image/*,application/pdf"
             className="hidden"
             onChange={(e) => handleFiles(e.target.files)}
           />
@@ -87,7 +89,7 @@ export const PdfGuideDropzone: React.FC = () => {
           {isUploading ? (
             <div className="flex flex-col items-center gap-3">
               <Loader2 className="w-10 h-10 text-blue-500 animate-spin" />
-              <div className="text-slate-300 font-medium">Processing & Rendering PDF...</div>
+              <div className="text-slate-300 font-medium">Processing & Rendering Document...</div>
             </div>
           ) : (
             <>
@@ -95,10 +97,10 @@ export const PdfGuideDropzone: React.FC = () => {
                 <FileUp className="w-8 h-8" />
               </div>
               <div className="text-base font-semibold text-slate-200 mb-1">
-                Drag & drop your PDF file here
+                Drag & drop your PDF or image file here
               </div>
               <p className="text-xs text-slate-400 mb-4">
-                Supports single-page & multi-page PDF documents
+                Supports PDF, PNG, JPG, JPEG, BMP & TIFF documents
               </p>
               <button
                 type="button"

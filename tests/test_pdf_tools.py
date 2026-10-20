@@ -48,13 +48,43 @@ def test_upload_pdf_success():
 
 
 def test_upload_pdf_invalid_file():
-    """Test rejecting non-pdf upload."""
+    """Test rejecting unsupported file formats."""
     response = client.post(
         "/api/pdf_tools/upload",
         files={"file": ("test.txt", b"plain text", "text/plain")},
     )
     assert response.status_code == 400
-    assert "Only PDF files are supported" in response.json()["detail"]
+    assert "Unsupported file format" in response.json()["detail"]
+
+
+def test_upload_image_files_png_jpg_bmp():
+    """Test uploading PNG, JPG, and BMP image files into Editor Toolbox."""
+    import io
+    import PIL.Image
+
+    for ext, fmt in [("png", "PNG"), ("jpg", "JPEG"), ("bmp", "BMP")]:
+        buf = io.BytesIO()
+        img = PIL.Image.new("RGB", (600, 400), color=(120, 180, 240))
+        img.save(buf, format=fmt)
+        img_bytes = buf.getvalue()
+
+        resp = client.post(
+            "/api/pdf_tools/upload",
+            files={"file": (f"sample_image.{ext}", img_bytes, f"image/{ext}")},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "doc_id" in data
+        assert data["filename"] == f"sample_image.{ext}"
+        assert data["total_pages"] == 1
+        assert data["pages"][0]["width_mm"] > 0
+        assert data["pages"][0]["height_mm"] > 0
+
+        # Test page image can be rendered for this converted document
+        img_resp = client.get(f"/api/pdf_tools/page_image/{data['doc_id']}/1?dpi=100")
+        assert img_resp.status_code == 200
+        assert img_resp.headers["content-type"] == "image/png"
+        assert len(img_resp.content) > 500
 
 
 def test_save_and_get_guide():
@@ -292,7 +322,7 @@ def test_true_redaction_and_box_nofill():
 
     # Verify custom text note is preserved in exported PDF
     text_rect = fitz.Rect(0.5 * pw, 0.1 * ph, 0.8 * pw, 0.3 * ph)
-    extracted_custom_text = page.get_text("text", clip=text_rect).strip()
+    extracted_custom_text = page.get_text("text", clip=text_rect).replace("\xa0", " ").strip()
     assert "Critical Note" in extracted_custom_text, "User typed text note MUST be rendered in exported PDF"
     doc.close()
 
@@ -377,3 +407,53 @@ def test_crop_and_export_badge_alignment():
     found_seven = any("7" in b[4] for b in blocks)
     assert found_seven, "Exported PDF page must contain the badge step number '7'"
     doc.close()
+
+
+def test_export_flattened_pdf_vietnamese_unicode_text():
+    """Test exporting Text Box with Vietnamese diacritics preserves 100% characters without '?'."""
+    import fitz
+
+    with open(SAMPLE_PDF, "rb") as f:
+        upload_resp = client.post(
+            "/api/pdf_tools/upload",
+            files={"file": ("v11.pdf", f, "application/pdf")},
+        )
+    doc_id = upload_resp.json()["doc_id"]
+
+    vn_text = "Kiểm tra bao bì in ấn, độ lệch màu sắc và nội dung Tiếng Việt!"
+
+    export_resp = client.post(
+        "/api/pdf_tools/export_flattened_pdf",
+        json={
+            "doc_id": doc_id,
+            "current_page": 1,
+            "badge_size": 28,
+            "steps": [],
+            "shapes": [
+                {
+                    "id": "text-vn-1",
+                    "type": "text",
+                    "norm_x1": 0.1,
+                    "norm_y1": 0.1,
+                    "norm_x2": 0.8,
+                    "norm_y2": 0.3,
+                    "color": "blue",
+                    "text": vn_text,
+                    "font_size": 16.0,
+                }
+            ],
+        },
+    )
+    assert export_resp.status_code == 200
+    assert export_resp.headers["content-type"] == "application/pdf"
+
+    # Verify extracted text from exported PDF contains Vietnamese diacritics without '?'
+    doc = fitz.open(stream=export_resp.content, filetype="pdf")
+    page = doc[0]
+    extracted = page.get_text().replace("\xa0", " ")
+    doc.close()
+
+    assert "?" not in extracted, f"Extracted text should not have '?' replacements: {repr(extracted)}"
+    assert "Kiểm tra bao bì in ấn" in extracted
+    assert "độ lệch màu sắc" in extracted
+    assert "nội dung Tiếng Việt" in extracted

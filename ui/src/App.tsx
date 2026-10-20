@@ -41,14 +41,14 @@ export const App: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-4">
-              {/* Standalone Mini Tool PDF Studio button */}
+              {/* Standalone Mini Tool Editor Toolbox button */}
               <button
                 onClick={() => usePdfGuideStore.getState().openStudio()}
-                title="Open PDF Guide Studio (Quick Viewer, Crop & Step-by-Step SOP Maker)"
+                title="Open Editor Toolbox (Quick Viewer, Crop, Markups & Step-by-Step SOP Maker)"
                 className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-600/10 hover:bg-blue-600/20 border border-blue-500/30 text-blue-400 hover:text-blue-300 transition text-xs font-semibold cursor-pointer shadow-sm shadow-blue-500/10"
               >
                 <BookOpenCheck className="w-4 h-4 text-blue-400" />
-                <span>PDF Guide Studio</span>
+                <span>Editor Toolbox</span>
               </button>
 
               <img

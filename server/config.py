@@ -39,6 +39,8 @@ else:
 PROFILES_DIR = BUNDLE_DIR / "artdiff" / "profiles"
 DEFAULT_PROFILE_PATH = PROFILES_DIR / "default.yaml"
 UI_DIST_DIR = BUNDLE_DIR / "ui" / "dist"
+FONTS_DIR = BUNDLE_DIR / "assets" / "fonts"
+ARIAL_FONT_PATH = FONTS_DIR / "Arial.ttf"
 
 # Find logo: check BUNDLE_DIR first, then UI assets
 LOGO_PATH = BUNDLE_DIR / "Logo-fes.png"

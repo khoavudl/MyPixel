@@ -12,6 +12,7 @@ datas = [
     (os.path.join(ROOT_DIR, "ui", "dist"), os.path.join("ui", "dist")),
     (os.path.join(ROOT_DIR, "artdiff", "profiles"), os.path.join("artdiff", "profiles")),
     (os.path.join(ROOT_DIR, "Logo-fes.png"), "."),
+    (os.path.join(ROOT_DIR, "assets"), "assets"),
 ]
 
 hiddenimports = [

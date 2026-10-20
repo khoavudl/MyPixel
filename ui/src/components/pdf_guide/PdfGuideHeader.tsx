@@ -69,7 +69,7 @@ export const PdfGuideHeader: React.FC = () => {
               {docInfo?.filename || 'Document'}
             </span>
             <span className="text-[10px] px-1.5 py-0.2 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 font-mono">
-              PDF Studio
+              Editor Toolbox
             </span>
           </div>
           {curPageInfo && (

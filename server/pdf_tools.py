@@ -21,12 +21,31 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 import pymupdf as fitz
 
-from server.config import LOGO_PATH, OUT_DIR
+from server.config import ARIAL_FONT_PATH, LOGO_PATH, OUT_DIR
 
 router = APIRouter(prefix="/api/pdf_tools", tags=["pdf_tools"])
 
 PDF_TOOLS_DIR = OUT_DIR / "pdf_tools"
 PDF_TOOLS_DIR.mkdir(parents=True, exist_ok=True)
+
+def get_unicode_font_path() -> Path | None:
+    """Find a Unicode-capable TrueType font supporting Vietnamese diacritics."""
+    import os
+    windir = os.environ.get("WINDIR", "C:/Windows")
+    candidates = [
+        ARIAL_FONT_PATH,
+        Path("/System/Library/Fonts/Supplemental/Arial.ttf"),
+        Path("/Library/Fonts/Arial.ttf"),
+        Path(windir) / "Fonts" / "arial.ttf",
+        Path(windir) / "Fonts" / "tahoma.ttf",
+        Path(windir) / "Fonts" / "segoeui.ttf",
+        Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
+        Path("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"),
+    ]
+    for p in candidates:
+        if p and p.is_file():
+            return p
+    return None
 
 COLOR_RGB_MAP: dict[str, tuple[float, float, float]] = {
     "blue": (0.23, 0.51, 0.96),    # #3b82f6
@@ -154,7 +173,18 @@ def draw_guide_elements_on_page(
     if has_redactions:
         page.apply_redactions(images=fitz.PDF_REDACT_IMAGE_PIXELS)
 
-    # 2. Draw remaining vector markup shapes (arrows, boxes, text notes)
+    # 2. Register Unicode font for Vietnamese and international characters
+    # (Must be inserted AFTER apply_redactions so font definition is not purged)
+    font_path = get_unicode_font_path()
+    text_fontname = "hebo"
+    if font_path:
+        try:
+            page.insert_font(fontname="vn_unicode_font", fontfile=str(font_path))
+            text_fontname = "vn_unicode_font"
+        except Exception:
+            text_fontname = "hebo"
+
+    # 3. Draw remaining vector markup shapes (arrows, boxes, text notes)
     for s in shapes:
         rgb = COLOR_RGB_MAP.get(s.color, (0.23, 0.51, 0.96))
         if s.type == "arrow":
@@ -206,10 +236,10 @@ def draw_guide_elements_on_page(
             if not content:
                 content = "Note"
             # Attempt inserting text, auto-scaling down font size if it overflows
-            res = page.insert_textbox(t_rect, content, fontsize=fs, color=rgb, fontname="hebo")
+            res = page.insert_textbox(t_rect, content, fontsize=fs, color=rgb, fontname=text_fontname)
             while res < 0 and fs > 6.0:
                 fs -= 1.0
-                res = page.insert_textbox(t_rect, content, fontsize=fs, color=rgb, fontname="hebo")
+                res = page.insert_textbox(t_rect, content, fontsize=fs, color=rgb, fontname=text_fontname)
 
     # 2. Draw step badges (scaled appropriately in pt)
     radius = max(8.0, min(36.0, badge_size * 0.55))
@@ -231,10 +261,15 @@ def draw_guide_elements_on_page(
 
 @router.post("/upload", response_model=PdfDocResponse)
 async def upload_pdf(file: UploadFile = File(...)) -> PdfDocResponse:
-    """Upload a standalone PDF document for viewing and creating manual guides."""
+    """Upload a standalone PDF or image document (PNG, JPG, BMP, WEBP, TIFF) for viewing and editing."""
     filename = file.filename or "document.pdf"
-    if not filename.lower().endswith(".pdf"):
-        raise HTTPException(status_code=400, detail="Only PDF files are supported.")
+    ext = Path(filename).suffix.lower()
+    SUPPORTED_EXTS = {".pdf", ".png", ".jpg", ".jpeg", ".bmp", ".webp", ".tif", ".tiff"}
+    if ext not in SUPPORTED_EXTS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported file format '{ext}'. Supported formats: PDF, PNG, JPG, JPEG, BMP, WEBP, TIFF.",
+        )
 
     doc_id = f"doc_{uuid.uuid4().hex[:12]}"
     doc_dir = PDF_TOOLS_DIR / doc_id
@@ -242,20 +277,40 @@ async def upload_pdf(file: UploadFile = File(...)) -> PdfDocResponse:
     pdf_path = doc_dir / "source.pdf"
 
     content = await file.read()
-    with open(pdf_path, "wb") as f:
-        f.write(content)
-    with open(doc_dir / "source_original.pdf", "wb") as f:
-        f.write(content)
+
+    if ext == ".pdf":
+        with open(pdf_path, "wb") as f:
+            f.write(content)
+        with open(doc_dir / "source_original.pdf", "wb") as f:
+            f.write(content)
+    else:
+        # Convert image (PNG, JPG, BMP, WEBP, TIFF) into a standard 1-page PDF
+        try:
+            fitz_type = ext.lstrip(".")
+            if fitz_type in ["jpg", "jpeg"]:
+                fitz_type = "jpeg"
+            img_doc = fitz.open(stream=content, filetype=fitz_type)
+            pdf_bytes = img_doc.convert_to_pdf()
+            img_doc.close()
+
+            with open(pdf_path, "wb") as f:
+                f.write(pdf_bytes)
+            with open(doc_dir / "source_original.pdf", "wb") as f:
+                f.write(pdf_bytes)
+            with open(doc_dir / f"original_image{ext}", "wb") as f:
+                f.write(content)
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail=f"Failed to process image file: {exc}")
 
     try:
         doc = fitz.open(pdf_path)
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=f"Invalid or corrupted PDF file: {exc}")
+        raise HTTPException(status_code=400, detail=f"Invalid or corrupted file: {exc}")
 
     total_pages = len(doc)
     if total_pages == 0:
         doc.close()
-        raise HTTPException(status_code=400, detail="PDF has 0 pages.")
+        raise HTTPException(status_code=400, detail="Document has 0 pages.")
 
     # Normalize rotation on all pages so coordinate system is unified
     has_rotations = any(p.rotation != 0 for p in doc)
@@ -713,7 +768,7 @@ async def export_sop_doc(payload: ExportSopDocRequest) -> FileResponse:
         ("Created At", now_str),
         ("Total Steps", f"{len(payload.steps)} Action Steps"),
         ("Markups", f"{len(payload.shapes)} Shapes / Redactions"),
-        ("Generator", "MyPixel PDF Guide Studio"),
+        ("Generator", "MyPixel Editor Toolbox"),
     ]
     for idx, (label, val) in enumerate(cells_meta):
         row_idx = idx // 3
