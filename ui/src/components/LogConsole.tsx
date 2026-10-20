@@ -143,28 +143,28 @@ export const LogConsole: React.FC = () => {
   );
 
   return (
-    <div className="max-w-4xl mx-auto py-10 px-6">
+    <div className="w-full max-w-4xl mx-auto py-4 sm:py-6 px-4 sm:px-6 flex flex-col justify-center min-h-[calc(100vh-3.5rem)]">
       {/* Step Indicators */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 mb-6 shadow-xl">
-        <div className="flex items-center justify-between mb-4">
+      <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5 mb-3.5 shadow-xl">
+        <div className="flex items-center justify-between mb-3">
           <div>
             <span className="text-xs font-semibold text-blue-400 uppercase tracking-wider">
               Phase 1 Pipeline Progress
             </span>
-            <h2 className="text-xl font-bold text-white mt-0.5">
+            <h2 className="text-lg font-bold text-white mt-0.5">
               Run ID: <span className="font-mono text-blue-300">{runId || '...'}</span>
             </h2>
           </div>
           <div className="text-right">
-            <span className="text-2xl font-black text-blue-400">{progressPercentage}%</span>
-            <div className="text-xs text-slate-400">
+            <span className="text-xl sm:text-2xl font-black text-blue-400">{progressPercentage}%</span>
+            <div className="text-[11px] text-slate-400">
               {completedTasks.size} / {PIPELINE_TASKS.length} tasks completed
             </div>
           </div>
         </div>
 
         {/* Progress Bar */}
-        <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden mb-6 border border-slate-800">
+        <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden mb-3.5 border border-slate-800">
           <div
             className="h-full bg-gradient-to-r from-blue-600 to-cyan-400 transition-all duration-300 rounded-full"
             style={{ width: `${progressPercentage}%` }}
@@ -203,13 +203,13 @@ export const LogConsole: React.FC = () => {
       </div>
 
       {/* Terminal Console View */}
-      <div className="bg-slate-950 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
-        <div className="bg-slate-900/80 px-4 py-3 border-b border-slate-800 flex items-center justify-between">
+      <div className="bg-slate-950 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col">
+        <div className="bg-slate-900/80 px-4 py-2.5 border-b border-slate-800 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2">
             <div className="flex gap-1.5">
-              <div className="w-3 h-3 rounded-full bg-red-500/80" />
-              <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
-              <div className="w-3 h-3 rounded-full bg-green-500/80" />
+              <div className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
+              <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/80" />
+              <div className="w-2.5 h-2.5 rounded-full bg-green-500/80" />
             </div>
             <div className="h-4 w-[1px] bg-slate-800 mx-2" />
             <Terminal className="w-4 h-4 text-slate-400" />
@@ -233,10 +233,10 @@ export const LogConsole: React.FC = () => {
           </div>
         </div>
 
-        {/* Console Log Area */}
+        {/* Console Log Area (Fixed height with smooth internal scrolling) */}
         <div
           ref={scrollRef}
-          className="p-4 font-mono text-xs leading-relaxed max-h-[380px] min-h-[260px] overflow-y-auto space-y-1.5"
+          className="p-4 font-mono text-xs leading-relaxed h-[240px] sm:h-[260px] overflow-y-auto space-y-1.5 bg-slate-950/80"
         >
           {logs.length === 0 ? (
             <div className="text-slate-600 flex items-center gap-2">
@@ -272,44 +272,25 @@ export const LogConsole: React.FC = () => {
           )}
         </div>
 
-        {/* Failure Explanation Banner with Smart Action Button */}
+        {/* Failure Explanation Banner */}
         {isFailed && (
-          <div className="bg-red-950/40 border-t border-red-500/30 px-6 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
-              <div className="text-xs text-red-200 leading-relaxed">
-                <div className="font-bold text-red-300 mb-0.5">Pipeline Paused: Frame not auto-confirmed or dimension mismatch</div>
-                <span>
-                  The system could not detect high-confidence frames (≥90%). You can switch to <b>Manual Align</b> to visually match and overlay the two files.
-                </span>
-              </div>
+          <div className="bg-red-950/40 border-t border-red-500/30 px-4 py-2.5 flex items-center gap-3 shrink-0">
+            <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+            <div className="text-xs text-red-200 leading-snug">
+              <span className="font-semibold text-red-300">Auto-crop frame or dimension mismatch. </span>
+              <span>
+                You can switch to <b>Manual Align</b> to visually overlay and fine-tune the files, or return to <b>Setup</b> to adjust dimensions.
+              </span>
             </div>
-
-            <button
-              onClick={handleSwitchToManual}
-              disabled={isSwitchingManual}
-              className="px-4 py-2.5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-amber-600/30 flex items-center gap-2 cursor-pointer transition-transform hover:scale-105 shrink-0"
-            >
-              {isSwitchingManual ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>Loading...</span>
-                </>
-              ) : (
-                <>
-                  <Sliders className="w-4 h-4" />
-                  <span>Switch to Manual Align</span>
-                </>
-              )}
-            </button>
           </div>
         )}
 
-        {/* Footer Actions */}
-        <div className="bg-slate-900/60 p-4 border-t border-slate-800 flex items-center justify-between">
+        {/* Footer Actions (Always pinned & visible) */}
+        <div className="bg-slate-900/90 px-5 py-3 border-t border-slate-800 flex items-center justify-between shrink-0">
           <button
             onClick={() => setViewMode('setup')}
-            className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
+            className="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700/60 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm"
+            title="Return to Setup"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span>Back to Setup</span>
@@ -319,17 +300,27 @@ export const LogConsole: React.FC = () => {
             <button
               onClick={handleSwitchToManual}
               disabled={isSwitchingManual}
-              className="px-4 py-2 text-xs font-semibold text-amber-300 hover:text-white bg-amber-600/20 hover:bg-amber-600/40 border border-amber-500/30 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
+              className="px-5 py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-500 rounded-xl shadow-lg shadow-amber-600/30 transition-all hover:scale-105 flex items-center gap-2 cursor-pointer disabled:opacity-50"
+              title="Switch to Manual Alignment staging canvas"
             >
-              <Sliders className="w-3.5 h-3.5 text-amber-400" />
-              <span>Manual Align</span>
+              {isSwitchingManual ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Loading...</span>
+                </>
+              ) : (
+                <>
+                  <Sliders className="w-3.5 h-3.5" />
+                  <span>Switch to Manual Align</span>
+                </>
+              )}
             </button>
           )}
 
           {isDone && (
             <button
               onClick={() => setViewMode('workspace')}
-              className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-emerald-600/30 flex items-center gap-2 cursor-pointer transition-transform hover:scale-105"
+              className="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-emerald-600/30 flex items-center gap-2 cursor-pointer transition-transform hover:scale-105"
             >
               <span>Enter Workspace</span>
               {autoRedirectTimer !== null && autoRedirectTimer > 0 && (
