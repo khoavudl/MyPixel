@@ -419,7 +419,11 @@ async def list_past_runs() -> list[PastRunSummary]:
 
     runs: list[PastRunSummary] = []
     for run_dir in OUT_DIR.iterdir():
-        if not run_dir.is_dir() or not (run_dir.name.startswith("run_") or run_dir.name.startswith("single_")):
+        if not run_dir.is_dir() or not (
+            run_dir.name.startswith("run_")
+            or run_dir.name.startswith("single_")
+            or run_dir.name.startswith("manual_")
+        ):
             continue
 
         report_file = run_dir / "report.json"
@@ -558,7 +562,11 @@ async def delete_all_runs() -> dict[str, int | str]:
     errors: list[str] = []
 
     for run_dir in list(OUT_DIR.iterdir()):
-        if not run_dir.is_dir() or not (run_dir.name.startswith("run_") or run_dir.name.startswith("single_")):
+        if not run_dir.is_dir() or not (
+            run_dir.name.startswith("run_")
+            or run_dir.name.startswith("single_")
+            or run_dir.name.startswith("manual_")
+        ):
             continue
         try:
             send_to_trash(run_dir)

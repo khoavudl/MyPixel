@@ -546,6 +546,10 @@ export const Dropzone: React.FC = () => {
                           <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-blue-500/20 text-blue-300 border border-blue-500/30">
                             Single
                           </span>
+                        ) : r.run_id.startsWith('manual_') ? (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                            Manual Compare
+                          </span>
                         ) : (
                           <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-purple-500/20 text-purple-300 border border-purple-500/30">
                             Compare
