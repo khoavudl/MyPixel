@@ -497,34 +497,34 @@ export const ManualAlignView: React.FC = () => {
   return (
     <div className="h-[calc(100vh-3.5rem)] flex flex-col bg-slate-950 text-slate-100 select-none overflow-hidden">
       {/* Top Controls Toolbar */}
-      <div className="h-14 bg-slate-900 border-b border-slate-800 px-5 flex items-center justify-between shrink-0 shadow-md z-30">
+      <div className="h-14 bg-slate-900 border-b border-slate-800 px-3 sm:px-4 flex items-center justify-between gap-2 shrink-0 shadow-md z-30">
         {/* Left: Title & Back */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 shrink min-w-0 max-w-[200px] sm:max-w-[280px] xl:max-w-sm">
           <button
             onClick={handleBack}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer flex items-center gap-1 text-xs font-semibold shrink-0"
             title={hasActiveWorkspace ? 'Back to 4-Way Workspace' : 'Back to Setup'}
           >
-            <ArrowLeft className="w-4 h-4" />
-            <span className="hidden sm:inline">
-              {hasActiveWorkspace ? 'Back to Workspace' : 'Setup'}
+            <ArrowLeft className="w-4 h-4 shrink-0" />
+            <span className="hidden md:inline">
+              {hasActiveWorkspace ? 'Workspace' : 'Setup'}
             </span>
           </button>
 
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-amber-600/20 text-amber-400 border border-amber-500/30 flex items-center justify-center">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-7 h-7 rounded-lg bg-amber-600/20 text-amber-400 border border-amber-500/30 flex items-center justify-center shrink-0">
               <Sliders className="w-4 h-4" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-white tracking-wide uppercase">
-                  Manual Alignment Workspace
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-bold text-white tracking-wide uppercase truncate">
+                  Manual Align
                 </span>
-                <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                <span className="hidden xl:inline text-[10px] font-mono text-amber-400 bg-amber-500/10 px-1 py-0.2 rounded border border-amber-500/20 shrink-0">
                   Mode 3
                 </span>
               </div>
-              <div className="text-[11px] text-slate-400 truncate max-w-xs">
+              <div className="text-[11px] text-slate-400 truncate">
                 {brand_filename} ({brand_size_mm[0]}×{brand_size_mm[1]} mm) vs {vendor_filename}
               </div>
             </div>
@@ -532,11 +532,11 @@ export const ManualAlignView: React.FC = () => {
         </div>
 
         {/* Center: Alignment Controls */}
-        <div className="flex items-center gap-3">
+        <div className="flex-1 min-w-0 flex items-center justify-center gap-1.5 xl:gap-2.5 overflow-x-auto no-scrollbar py-1">
           {/* Opacity Slider */}
-          <div className="flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 text-xs">
+          <div className="flex items-center gap-1.5 bg-slate-950 px-2.5 py-1 rounded-xl border border-slate-800 text-xs shrink-0">
             <Layers className="w-3.5 h-3.5 text-slate-400" />
-            <span className="text-slate-400 text-[11px]">Opacity:</span>
+            <span className="text-slate-400 text-[11px] hidden sm:inline">Opacity:</span>
             <input
               type="range"
               min="0"
@@ -544,18 +544,18 @@ export const ManualAlignView: React.FC = () => {
               step="0.05"
               value={opacity}
               onChange={(e) => setOpacity(parseFloat(e.target.value))}
-              className="w-20 accent-blue-500 cursor-pointer h-1.5"
+              className="w-16 sm:w-20 accent-blue-500 cursor-pointer h-1.5"
             />
-            <span className="w-8 font-mono text-[11px] text-slate-300 text-right">
+            <span className="w-7 font-mono text-[11px] text-slate-300 text-right">
               {Math.round(opacity * 100)}%
             </span>
           </div>
 
           {/* Blend Mode Selector */}
-          <div className="inline-flex p-1 bg-slate-950 border border-slate-800 rounded-xl text-xs">
+          <div className="inline-flex p-0.5 bg-slate-950 border border-slate-800 rounded-xl text-xs shrink-0">
             <button
               onClick={() => setBlendMode('difference')}
-              className={`px-2.5 py-1 rounded-lg font-medium transition-colors cursor-pointer ${
+              className={`px-2 py-1 rounded-lg font-medium transition-colors cursor-pointer text-xs ${
                 blendMode === 'difference'
                   ? 'bg-amber-600 text-white font-semibold shadow-sm'
                   : 'text-slate-400 hover:text-slate-200'
@@ -566,7 +566,7 @@ export const ManualAlignView: React.FC = () => {
             </button>
             <button
               onClick={() => setBlendMode('normal')}
-              className={`px-2.5 py-1 rounded-lg font-medium transition-colors cursor-pointer ${
+              className={`px-2 py-1 rounded-lg font-medium transition-colors cursor-pointer text-xs ${
                 blendMode === 'normal'
                   ? 'bg-blue-600 text-white font-semibold shadow-sm'
                   : 'text-slate-400 hover:text-slate-200'
@@ -577,7 +577,7 @@ export const ManualAlignView: React.FC = () => {
             </button>
             <button
               onClick={() => setBlendMode('duotone')}
-              className={`px-2.5 py-1 rounded-lg font-medium transition-colors cursor-pointer ${
+              className={`px-2 py-1 rounded-lg font-medium transition-colors cursor-pointer text-xs ${
                 blendMode === 'duotone'
                   ? 'bg-purple-600 text-white font-semibold shadow-sm'
                   : 'text-slate-400 hover:text-slate-200'
@@ -589,8 +589,8 @@ export const ManualAlignView: React.FC = () => {
           </div>
 
           {/* Scale Control */}
-          <div className="flex items-center gap-1.5 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 text-xs">
-            <span className="text-slate-400 text-[11px]">Scale:</span>
+          <div className="flex items-center gap-1 bg-slate-950 px-2 py-1 rounded-xl border border-slate-800 text-xs shrink-0">
+            <span className="text-slate-400 text-[11px] hidden sm:inline">Scale:</span>
             <button
               onClick={() => applyScaleAroundCenter(scale - 0.05)}
               className="w-5 h-5 rounded bg-slate-800 hover:bg-slate-700 flex items-center justify-center font-bold text-slate-300 cursor-pointer"
@@ -598,7 +598,7 @@ export const ManualAlignView: React.FC = () => {
             >
               -
             </button>
-            <span className="font-mono text-xs text-white min-w-[3.5rem] text-center">
+            <span className="font-mono text-xs text-white min-w-[3rem] text-center">
               {scale.toFixed(2)}×
             </span>
             <button
@@ -620,7 +620,7 @@ export const ManualAlignView: React.FC = () => {
           </div>
 
           {/* Rotation Controls */}
-          <div className="flex items-center gap-1 bg-slate-950 px-2 py-1 rounded-xl border border-slate-800 text-xs">
+          <div className="flex items-center gap-1 bg-slate-950 px-1.5 py-1 rounded-xl border border-slate-800 text-xs shrink-0">
             <button
               onClick={() => setRotationDeg((r) => Number(((r - 90 + 360) % 360).toFixed(1)))}
               className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer"
@@ -628,7 +628,7 @@ export const ManualAlignView: React.FC = () => {
             >
               <RotateCcw className="w-3.5 h-3.5" />
             </button>
-            <span className="font-mono text-xs text-white w-11 text-center">
+            <span className="font-mono text-xs text-white w-10 text-center">
               {rotationDeg.toFixed(1)}°
             </span>
             <button
@@ -642,7 +642,7 @@ export const ManualAlignView: React.FC = () => {
         </div>
 
         {/* Right: Reset & Confirm Actions */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 shrink-0 ml-auto">
           <button
             onClick={() => {
               setOffsetXmm(0);
@@ -654,7 +654,7 @@ export const ManualAlignView: React.FC = () => {
               offsetXRef.current = 0;
               offsetYRef.current = 0;
             }}
-            className="px-3 py-1.5 text-xs text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+            className="px-2.5 py-1.5 text-xs text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors cursor-pointer shrink-0"
           >
             Reset
           </button>
@@ -662,16 +662,16 @@ export const ManualAlignView: React.FC = () => {
           <button
             onClick={handleConfirmAndApply}
             disabled={isSubmitting}
-            className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-emerald-600/30 flex items-center gap-2 cursor-pointer transition-transform hover:scale-105"
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-emerald-600/30 flex items-center gap-1.5 cursor-pointer transition-transform hover:scale-105 shrink-0 whitespace-nowrap"
           >
             {isSubmitting ? (
               <>
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                <span>Processing & Warping...</span>
+                <span>Processing...</span>
               </>
             ) : (
               <>
-                <CheckCircle2 className="w-4 h-4" />
+                <CheckCircle2 className="w-4 h-4 shrink-0" />
                 <span>Confirm & Enter Workspace</span>
               </>
             )}
