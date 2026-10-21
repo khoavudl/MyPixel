@@ -22,7 +22,6 @@ export const LoupeMagnifier: React.FC<LoupeMagnifierProps> = ({
   const {
     activeTool,
     viewport,
-    targetSizeMm,
     loupeNormalizedPos,
     setLoupeNormalizedPos,
     loupeScaleFactor,
@@ -118,19 +117,6 @@ export const LoupeMagnifier: React.FC<LoupeMagnifierProps> = ({
     return null;
   }
 
-  // Calculate physical coordinates in mm
-  const [targetW, targetH] = (() => {
-    try {
-      const parts = targetSizeMm.toLowerCase().replace('mm', '').split(/[x,]/);
-      return [parseFloat(parts[0]) || 620, parseFloat(parts[1]) || 250];
-    } catch {
-      return [620, 250];
-    }
-  })();
-
-  const posXmm = (loupeNormalizedPos.x * targetW).toFixed(2);
-  const posYmm = (loupeNormalizedPos.y * targetH).toFixed(2);
-
   const wx = loupeNormalizedPos.x * imageWidth;
   const wy = loupeNormalizedPos.y * imageHeight;
 
@@ -159,20 +145,6 @@ export const LoupeMagnifier: React.FC<LoupeMagnifierProps> = ({
         }}
         className="pointer-events-none"
       />
-
-      {/* Central Crosshair */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <div className="w-full h-[1px] bg-red-500/70" />
-        <div className="h-full w-[1px] bg-red-500/70 absolute" />
-        <div className="w-2.5 h-2.5 rounded-full border border-red-500/90 absolute" />
-      </div>
-
-      {/* Pill: Zoom factor & Physical location */}
-      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-slate-950/90 border border-slate-700 text-[10px] font-mono text-cyan-300 shadow font-bold whitespace-nowrap flex items-center gap-1.5 pointer-events-none">
-        <span>{relativeFactor.toFixed(1)}x ({Math.round(effectiveZoom * 100)}%)</span>
-        <span className="text-slate-500">•</span>
-        <span>{posXmm}, {posYmm} mm</span>
-      </div>
     </div>
   );
 };

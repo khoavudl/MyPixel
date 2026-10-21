@@ -46,11 +46,10 @@ export const PdfGuideHeader: React.FC = () => {
   } = usePdfGuideStore();
 
   const totalPages = docInfo?.total_pages || 1;
-  const curPageInfo = docInfo?.pages.find((p) => p.page_number === currentPage);
 
   return (
     <header className="h-14 border-b border-slate-800 bg-slate-900/90 backdrop-blur px-4 flex items-center justify-between gap-4 select-none z-30 shrink-0">
-      {/* Left: Back & Document info */}
+      {/* Left: Back button */}
       <div className="flex items-center gap-3">
         <button
           onClick={closeStudio}
@@ -60,24 +59,6 @@ export const PdfGuideHeader: React.FC = () => {
           <ArrowLeft className="w-3.5 h-3.5" />
           Back
         </button>
-
-        <div className="h-5 w-px bg-slate-800" />
-
-        <div className="flex flex-col">
-          <div className="text-xs font-bold text-white tracking-tight flex items-center gap-2">
-            <span className="truncate max-w-[200px]" title={docInfo?.filename}>
-              {docInfo?.filename || 'Document'}
-            </span>
-            <span className="text-[10px] px-1.5 py-0.2 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 font-mono">
-              Editor Toolbox
-            </span>
-          </div>
-          {curPageInfo && (
-            <div className="text-[11px] text-slate-400 font-mono">
-              {curPageInfo.width_mm} × {curPageInfo.height_mm} mm
-            </div>
-          )}
-        </div>
       </div>
 
       {/* Center: Page Switcher & Zoom Controls */}

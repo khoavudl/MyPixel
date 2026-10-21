@@ -14,10 +14,8 @@ import {
   Home,
   SlidersHorizontal,
   Loader2,
-  BookOpenCheck,
 } from 'lucide-react';
 import { useInspectionStore } from '../store/useInspectionStore';
-import { usePdfGuideStore } from '../store/usePdfGuideStore';
 
 interface ToolbarProps {
   onFitToScreen: () => void;
@@ -109,22 +107,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           <Home className="w-3.5 h-3.5" />
           <span className="hidden sm:inline">Home</span>
         </button>
-
-        <div className="h-4 w-[1px] bg-slate-800 hidden sm:block" />
-
-        <div className="hidden sm:flex items-center gap-2 text-xs">
-          <span className="text-slate-500">ID:</span>
-          <span className="font-mono text-blue-400 font-semibold">{runId || '-'}</span>
-          {isSingle ? (
-            <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">
-              Single Mode
-            </span>
-          ) : (
-            <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-purple-500/20 text-purple-400 border border-purple-500/30">
-              Compare Mode
-            </span>
-          )}
-        </div>
 
         {/* Button to enter / return to Manual Alignment */}
         {!isSingle && (
@@ -299,18 +281,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         </button>
       </div>
 
-      {/* Right: PDF Guide Studio & Defect Punch List Toggle */}
+      {/* Right: Defect Punch List Toggle */}
       <div className="flex items-center gap-3">
-        {/* Editor Toolbox Mini-tool Button */}
-        <button
-          onClick={() => usePdfGuideStore.getState().openStudio()}
-          title="Open Editor Toolbox (Crop, Markups & SOP Maker)"
-          className="px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors border bg-blue-600/10 border-blue-500/30 text-blue-400 hover:bg-blue-600/20 cursor-pointer"
-        >
-          <BookOpenCheck className="w-3.5 h-3.5" />
-          <span>Editor Toolbox</span>
-        </button>
-
         {/* Defect List Sidebar Toggle */}
         <button
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}

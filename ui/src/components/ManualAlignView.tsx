@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  Sliders,
   CheckCircle2,
   RotateCcw,
   Maximize2,
@@ -53,8 +52,6 @@ export const ManualAlignView: React.FC = () => {
     vendor_size_mm,
     brand_shape_px,
     initial_crop_bbox_mm,
-    brand_filename,
-    vendor_filename,
     brand_page,
     vendor_page,
     initial_transform,
@@ -498,37 +495,18 @@ export const ManualAlignView: React.FC = () => {
     <div className="h-[calc(100vh-3.5rem)] flex flex-col bg-slate-950 text-slate-100 select-none overflow-hidden">
       {/* Top Controls Toolbar */}
       <div className="h-14 bg-slate-900 border-b border-slate-800 px-3 sm:px-4 flex items-center justify-between gap-2 shrink-0 shadow-md z-30">
-        {/* Left: Title & Back */}
-        <div className="flex items-center gap-2 shrink min-w-0 max-w-[200px] sm:max-w-[280px] xl:max-w-sm">
+        {/* Left: Back Button Only */}
+        <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={handleBack}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer flex items-center gap-1 text-xs font-semibold shrink-0"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-semibold shrink-0"
             title={hasActiveWorkspace ? 'Back to 4-Way Workspace' : 'Back to Setup'}
           >
             <ArrowLeft className="w-4 h-4 shrink-0" />
-            <span className="hidden md:inline">
-              {hasActiveWorkspace ? 'Workspace' : 'Setup'}
+            <span>
+              {hasActiveWorkspace ? 'Back to Workspace' : 'Setup'}
             </span>
           </button>
-
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="w-7 h-7 rounded-lg bg-amber-600/20 text-amber-400 border border-amber-500/30 flex items-center justify-center shrink-0">
-              <Sliders className="w-4 h-4" />
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs font-bold text-white tracking-wide uppercase truncate">
-                  Manual Align
-                </span>
-                <span className="hidden xl:inline text-[10px] font-mono text-amber-400 bg-amber-500/10 px-1 py-0.2 rounded border border-amber-500/20 shrink-0">
-                  Mode 3
-                </span>
-              </div>
-              <div className="text-[11px] text-slate-400 truncate">
-                {brand_filename} ({brand_size_mm[0]}×{brand_size_mm[1]} mm) vs {vendor_filename}
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Center: Alignment Controls */}

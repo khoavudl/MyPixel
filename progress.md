@@ -1,6 +1,6 @@
 # TIẾN ĐỘ DỰ ÁN (PROJECT PROGRESS) – MYPIXEL (ARTDIFF)
 > **Cập nhật lần cuối:** 2026-10-21  
-> **Trạng thái hiện tại:** Đã hoàn thành Milestone 2A.1 đến 2A.14 (Editor Toolbox), **Milestone 2A.15: Khắc Phục Triệt Để Lỗi Crash PyMuPDF Layout & Sửa Lỗi CI/CD GitHub Actions Build Windows**, **UI Polish: Tối Ưu Thanh Toolbar Manual Alignment Chống Tràn Màn Hình Trên Windows / Màn Hình Độ Phân Giải Thấp (Pin Nút Confirm & Enter Workspace Không Bao Giờ Bị Mất)**.  
+> **Trạng thái hiện tại:** Đã hoàn thành Milestone 2A.1 đến 2A.14 (Editor Toolbox), **Milestone 2A.15: Khắc Phục Triệt Để Lỗi Crash PyMuPDF Layout & Sửa Lỗi CI/CD GitHub Actions Build Windows**, **UI Polish: Tối Ưu Không Gian Header/Toolbar (Gỡ Bỏ Title/File Info Trong Manual Align, Gỡ Bỏ ID & Editor Toolbox Trong 4-Frame Workspace, Gỡ Bỏ Info Header Trong Editor Toolbox, Kính Lúp Loupe Trong Suốt Tuyệt Đối 100% Không Line Không Badge)**.  
 > **Tổng số bài test tự động:** 65/65 PASS (100% - 2 skipped)
 
 ---
