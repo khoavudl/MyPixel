@@ -14,6 +14,7 @@ import {
 import { canonicalToScreen, getDisplayedDimensions } from '../utils/coordinateTransform';
 
 export type AppViewMode = 'setup' | 'console' | 'workspace' | 'manual_align';
+export type ManualAlignStep = 'pick_points' | 'fine_tune';
 
 interface InspectionState {
   // Navigation / Main screen functions
@@ -28,6 +29,7 @@ interface InspectionState {
   vendorPage: number;
   compareCropMode: CompareCropMode;
   manualAlignData: ManualAlignPrepareData | null;
+  manualAlignStep: ManualAlignStep;
 
   // Function 3: Setup inputs (Single Inspection)
   singleFile: File | null;
@@ -69,6 +71,7 @@ interface InspectionState {
   setVendorPage: (page: number) => void;
   setCompareCropMode: (mode: CompareCropMode) => void;
   setManualAlignData: (data: ManualAlignPrepareData | null) => void;
+  setManualAlignStep: (step: ManualAlignStep) => void;
   setSingleFile: (file: File | null) => void;
   setSinglePage: (page: number) => void;
   setSingleTargetSizeMm: (size: string) => void;
@@ -132,6 +135,7 @@ export const useInspectionStore = create<InspectionState>((set) => ({
   runStatus: null,
   viewMode: 'setup',
   manualAlignData: null,
+  manualAlignStep: 'pick_points',
 
   activeTool: 'pan',
   viewport: defaultViewport,
@@ -157,6 +161,7 @@ export const useInspectionStore = create<InspectionState>((set) => ({
   setVendorPage: (page) => set({ vendorPage: page }),
   setCompareCropMode: (mode) => set({ compareCropMode: mode }),
   setManualAlignData: (data) => set({ manualAlignData: data }),
+  setManualAlignStep: (step) => set({ manualAlignStep: step }),
   setSingleFile: (file) => set({ singleFile: file }),
   setSinglePage: (page) => set({ singlePage: page }),
   setSingleTargetSizeMm: (size) => set({ singleTargetSizeMm: size }),
@@ -293,6 +298,7 @@ export const useInspectionStore = create<InspectionState>((set) => ({
       runStatus: null,
       viewMode: 'setup',
       manualAlignData: null,
+      manualAlignStep: 'pick_points',
       viewport: defaultViewport,
       annotations: [],
       selectedBoxId: null,

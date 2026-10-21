@@ -48,6 +48,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     setViewMode,
     manualAlignData,
     setManualAlignData,
+    setManualAlignStep,
   } = useInspectionStore();
 
   const [isLoadingManual, setIsLoadingManual] = useState(false);
@@ -64,6 +65,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
   const handleAdjustAlignment = async () => {
     if (manualAlignData && manualAlignData.run_id === runId) {
+      setManualAlignStep('fine_tune');
       setViewMode('manual_align');
       return;
     }
@@ -77,6 +79,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
       }
       const data = await res.json();
       setManualAlignData(data);
+      setManualAlignStep('fine_tune');
       setViewMode('manual_align');
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Cannot enter manual alignment');

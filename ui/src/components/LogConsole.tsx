@@ -29,6 +29,7 @@ export const LogConsole: React.FC = () => {
     setViewMode,
     setIsAnalyzing,
     setManualAlignData,
+    setManualAlignStep,
   } = useInspectionStore();
 
   const [activeTaskId, setActiveTaskId] = useState<string>('task1_render');
@@ -129,6 +130,7 @@ export const LogConsole: React.FC = () => {
       }
       const data = await res.json();
       setManualAlignData(data);
+      setManualAlignStep('pick_points');
       setViewMode('manual_align');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);

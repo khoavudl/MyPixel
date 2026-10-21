@@ -40,6 +40,7 @@ export const Dropzone: React.FC = () => {
     setVendorPage,
     setCompareCropMode,
     setManualAlignData,
+    setManualAlignStep,
 
     // Function 3 state
     singleFile,
@@ -215,6 +216,7 @@ export const Dropzone: React.FC = () => {
 
         const data = await res.json();
         setManualAlignData(data);
+        setManualAlignStep('pick_points');
         setRunId(data.run_id);
         setInspectionType('compare');
         setIsAnalyzing(false);
