@@ -73,6 +73,7 @@ export const PdfGuideCanvas: React.FC = () => {
   // 2-Click Arrow state
   const [arrowPendingStart, setArrowPendingStart] = useState<{ x: number; y: number } | null>(null);
   const [drawingShape, setDrawingShape] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
+  const justFinishedDrawingRef = useRef(false);
 
   // 2-Click Text Box state
   const [textPendingStart, setTextPendingStart] = useState<{ x: number; y: number } | null>(null);
@@ -213,34 +214,9 @@ export const PdfGuideCanvas: React.FC = () => {
       return;
     }
 
-    // 2. ARROW TOOL: 2-click interaction
-    if (activeTool === 'arrow') {
-      if (!arrowPendingStart) {
-        // Click 1: defines the tail!
-        setArrowPendingStart({ x: norm.x, y: norm.y });
-        setDrawingShape({ x1: norm.x, y1: norm.y, x2: norm.x, y2: norm.y });
-      } else {
-        // Click 2: finalizes the arrow!
-        const dx = Math.abs(norm.x - arrowPendingStart.x);
-        const dy = Math.abs(norm.y - arrowPendingStart.y);
-        if (dx > 0.003 || dy > 0.003) {
-          addShape({
-            type: 'arrow',
-            color: activeColor,
-            norm_x1: arrowPendingStart.x,
-            norm_y1: arrowPendingStart.y,
-            norm_x2: norm.x,
-            norm_y2: norm.y,
-          });
-        }
-        setArrowPendingStart(null);
-        setDrawingShape(null);
-      }
-      return;
-    }
-
-    // 3. BOX & BLUR TOOLS: Drag-to-draw
-    if (activeTool === 'box' || activeTool === 'blur') {
+    // 2. ARROW, BOX & BLUR TOOLS: Drag-to-draw (press -> drag -> release to finalize immediately)
+    if (activeTool === 'arrow' || activeTool === 'box' || activeTool === 'blur') {
+      setArrowPendingStart(null);
       setDrawingShape({ x1: norm.x, y1: norm.y, x2: norm.x, y2: norm.y });
       return;
     }
@@ -386,18 +362,7 @@ export const PdfGuideCanvas: React.FC = () => {
       }
     }
 
-    // 3. Arrow moving (waiting for Click 2)
-    if (arrowPendingStart) {
-      setDrawingShape({
-        x1: arrowPendingStart.x,
-        y1: arrowPendingStart.y,
-        x2: norm.x,
-        y2: norm.y,
-      });
-      return;
-    }
-
-    // 4. Text Box moving (waiting for Click 2)
+    // 3. Text Box moving (waiting for Click 2)
     if (textPendingStart) {
       setDrawingShape({
         x1: textPendingStart.x,
@@ -408,8 +373,8 @@ export const PdfGuideCanvas: React.FC = () => {
       return;
     }
 
-    // 5. Box/Blur drag-to-draw
-    if (drawingShape && (activeTool === 'box' || activeTool === 'blur')) {
+    // 4. Arrow / Box / Blur drag-to-draw
+    if (drawingShape && (activeTool === 'arrow' || activeTool === 'box' || activeTool === 'blur')) {
       setDrawingShape((prev) => (prev ? { ...prev, x2: norm.x, y2: norm.y } : null));
       return;
     }
@@ -435,6 +400,28 @@ export const PdfGuideCanvas: React.FC = () => {
       setDragMode(null);
       setInitialShapeData(null);
       setInitialStepData(null);
+    }
+
+    // Finalize drag-to-draw for Arrow (drag & release immediately creates the arrow)
+    if (drawingShape && activeTool === 'arrow') {
+      const dx = Math.abs(drawingShape.x2 - drawingShape.x1);
+      const dy = Math.abs(drawingShape.y2 - drawingShape.y1);
+      if (dx > 0.003 || dy > 0.003) {
+        addShape({
+          type: 'arrow',
+          color: activeColor,
+          norm_x1: drawingShape.x1,
+          norm_y1: drawingShape.y1,
+          norm_x2: drawingShape.x2,
+          norm_y2: drawingShape.y2,
+        });
+        justFinishedDrawingRef.current = true;
+        setTimeout(() => {
+          justFinishedDrawingRef.current = false;
+        }, 50);
+      }
+      setArrowPendingStart(null);
+      setDrawingShape(null);
     }
 
     // Finalize drag-to-draw for Box and Blur
@@ -600,6 +587,10 @@ export const PdfGuideCanvas: React.FC = () => {
     targetType: 'shape' | 'step',
     id: string
   ) => {
+    // If a 2-click drawing operation is in progress, let the canvas handle the click to finalize it
+    if (arrowPendingStart || textPendingStart || cropPendingStart || activeTool === 'crop') {
+      return;
+    }
     e.stopPropagation();
     const norm = getNormCoord(e);
     if (!norm) return;
@@ -824,6 +815,7 @@ export const PdfGuideCanvas: React.FC = () => {
                       onMouseDown={(e) => startDrag(e, 'move', 'shape', s.id)}
                       onClick={(e) => {
                         e.stopPropagation();
+                        if (justFinishedDrawingRef.current) return;
                         setSelectedShapeId(s.id);
                       }}
                     >
@@ -894,13 +886,18 @@ export const PdfGuideCanvas: React.FC = () => {
                         stroke={col.stroke}
                         strokeWidth={(isSelected ? sw + 1.5 : sw) / zoom}
                         fill={isFilled ? col.fill : 'transparent'}
-                        pointerEvents="all"
+                        pointerEvents={
+                          isFilled || isSelected || activeTool === 'pan' || activeTool === 'box'
+                            ? 'all'
+                            : 'visibleStroke'
+                        }
                         rx={4 / zoom}
                         strokeDasharray={isSelected ? `${6 / zoom} ${4 / zoom}` : undefined}
                         className="cursor-move pointer-events-auto"
                         onMouseDown={(e) => startDrag(e, 'move', 'shape', s.id)}
                         onClick={(e) => {
                           e.stopPropagation();
+                          if (justFinishedDrawingRef.current) return;
                           setSelectedShapeId(s.id);
                         }}
                       />
@@ -939,6 +936,7 @@ export const PdfGuideCanvas: React.FC = () => {
                         onMouseDown={(e) => startDrag(e, 'move', 'shape', s.id)}
                         onClick={(e) => {
                           e.stopPropagation();
+                          if (justFinishedDrawingRef.current) return;
                           setSelectedShapeId(s.id);
                         }}
                       />
@@ -1448,9 +1446,7 @@ export const PdfGuideCanvas: React.FC = () => {
           {activeTool === 'step' && <span>Click anywhere on PDF to stamp ① ② ③ badges • Drag to reposition</span>}
           {activeTool === 'arrow' && (
             <span>
-              {arrowPendingStart
-                ? 'Click 2: Place arrow head to finalize'
-                : 'Click 1: Place arrow tail, then move cursor'}
+              Drag to draw arrow (or click tail then click head) • Drag endpoints to adjust
             </span>
           )}
           {activeTool === 'box' && <span>Drag to draw outline box (No Fill) • Click to resize or toggle fill</span>}
