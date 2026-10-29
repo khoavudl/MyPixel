@@ -16,11 +16,52 @@ from typing import Any
 
 import cv2
 import numpy as np
+import pymupdf as fitz
 
 from artdiff.core.models import RasterPage
 from artdiff.core.units import mm_to_px, pt_to_mm, px_to_mm
 from artdiff.ingest.pdf_renderer import render_page
 from server.config import OUT_DIR
+
+# Maximum pixel dimensions to keep decoded bitmaps safely below WebView's 32 MP (2^25 px) backing-store cap
+MAX_PREVIEW_DIM_PX = 4096
+MAX_PREVIEW_TOTAL_PX = 16_000_000
+MAX_WORKSPACE_DIM_PX = 5500
+MAX_WORKSPACE_TOTAL_PX = 24_000_000
+
+
+def get_pdf_page_size_mm(pdf_path: str | Path, page_number: int = 1) -> tuple[float, float]:
+    """Read physical page width and height in mm from a PDF without rasterizing."""
+    doc = fitz.open(str(pdf_path))
+    try:
+        idx = max(0, min(len(doc) - 1, page_number - 1))
+        rect = doc[idx].rect
+        return (float(pt_to_mm(rect.width)), float(pt_to_mm(rect.height)))
+    finally:
+        doc.close()
+
+
+def adaptive_px_per_mm(
+    w_mm: float,
+    h_mm: float,
+    target_px_per_mm: float,
+    max_dim_px: int = MAX_WORKSPACE_DIM_PX,
+    max_total_px: int = MAX_WORKSPACE_TOTAL_PX,
+) -> float:
+    """Scale down px_per_mm proportionally for oversized physical sheets (e.g. 1.7m cartons)
+    so the resulting image stays within safe WebView/GPU bitmap limits while preserving exact aspect ratio.
+    """
+    eff_px_per_mm = float(target_px_per_mm)
+    max_side_mm = max(float(w_mm), float(h_mm), 1.0)
+    area_mm2 = max(float(w_mm) * float(h_mm), 1.0)
+
+    if max_side_mm * eff_px_per_mm > max_dim_px:
+        eff_px_per_mm = max_dim_px / max_side_mm
+
+    if (w_mm * eff_px_per_mm) * (h_mm * eff_px_per_mm) > max_total_px:
+        eff_px_per_mm = math.sqrt(max_total_px / area_mm2)
+
+    return max(0.5, eff_px_per_mm)
 
 
 def derive_transform_from_report(
@@ -147,14 +188,32 @@ def prepare_alignment(
     dest_brand = dest_brand_upload
     dest_vendor = dest_vendor_upload
 
-    # Render preview pages at 150 DPI (approx 5.9 px/mm) for smooth 60 FPS UI interaction
-    preview_px_per_mm = 5.9055  # 150 DPI
+    # Render preview pages at 150 DPI (approx 5.9 px/mm) for standard sheets,
+    # adaptively capping oversized sheets (e.g. 1.7m cartons) so WebView never hits its 32 MP bitmap cap.
+    base_preview_px_per_mm = 5.9055  # 150 DPI
+    b_raw_w_mm, b_raw_h_mm = get_pdf_page_size_mm(dest_brand, brand_page)
+    v_raw_w_mm, v_raw_h_mm = get_pdf_page_size_mm(dest_vendor, vendor_page)
+
+    brand_preview_px_per_mm = adaptive_px_per_mm(
+        b_raw_w_mm,
+        b_raw_h_mm,
+        base_preview_px_per_mm,
+        max_dim_px=MAX_PREVIEW_DIM_PX,
+        max_total_px=MAX_PREVIEW_TOTAL_PX,
+    )
+    vendor_preview_px_per_mm = adaptive_px_per_mm(
+        v_raw_w_mm,
+        v_raw_h_mm,
+        base_preview_px_per_mm,
+        max_dim_px=MAX_PREVIEW_DIM_PX,
+        max_total_px=MAX_PREVIEW_TOTAL_PX,
+    )
 
     brand_page_obj = render_page(
-        dest_brand, page_number=brand_page, px_per_mm=preview_px_per_mm, source="brand"
+        dest_brand, page_number=brand_page, px_per_mm=brand_preview_px_per_mm, source="brand"
     )
     vendor_page_obj = render_page(
-        dest_vendor, page_number=vendor_page, px_per_mm=preview_px_per_mm, source="vendor"
+        dest_vendor, page_number=vendor_page, px_per_mm=vendor_preview_px_per_mm, source="vendor"
     )
 
     brand_preview_path = run_dir / "preview_brand.png"
@@ -237,7 +296,18 @@ def apply_alignment(
     dest_brand = Path(brand_path)
     dest_vendor = Path(vendor_path)
 
-    # 1. Render Brand page at full 300 DPI
+    # 1. Render Brand page at 300 DPI (adaptively capped for oversized sheets so WebView stays below 32 MP)
+    b_raw_w_mm, b_raw_h_mm = get_pdf_page_size_mm(dest_brand, brand_page)
+    v_raw_w_mm, v_raw_h_mm = get_pdf_page_size_mm(dest_vendor, vendor_page)
+
+    px_per_mm = adaptive_px_per_mm(
+        b_raw_w_mm,
+        b_raw_h_mm,
+        px_per_mm,
+        max_dim_px=MAX_WORKSPACE_DIM_PX,
+        max_total_px=MAX_WORKSPACE_TOTAL_PX,
+    )
+
     brand_page_obj = render_page(
         dest_brand, page_number=brand_page, px_per_mm=px_per_mm, source="brand"
     )
@@ -273,7 +343,13 @@ def apply_alignment(
     avg_scale = 0.5 * (abs(scale_x) + abs(scale_y))
     # Cap upscaling factor to avoid extreme memory allocation, max 45 px/mm (~1140 DPI)
     render_scale = max(1.0, min(4.0, avg_scale))
-    vendor_px_per_mm = px_per_mm * render_scale
+    vendor_px_per_mm = adaptive_px_per_mm(
+        v_raw_w_mm,
+        v_raw_h_mm,
+        px_per_mm * render_scale,
+        max_dim_px=6000,
+        max_total_px=MAX_WORKSPACE_TOTAL_PX,
+    )
 
     vendor_page_obj = render_page(
         dest_vendor, page_number=vendor_page, px_per_mm=vendor_px_per_mm, source="vendor"

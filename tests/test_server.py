@@ -333,4 +333,114 @@ def test_analyze_full_page_sheet_mode(client, sample_pdfs):
     assert status_data["report"]["target_size_mm"] is not None
 
 
+def test_manual_align_oversized_carton_vs_a4_both_orders(client, tmp_path):
+    """Ensure 1.7m carton PDFs (1698.23 x 816.80 mm) paired with A4 PDFs (297 x 210 mm)
+    are adaptively capped below WebView's 32 MP bitmap limit while preserving 100% aspect ratio
+    regardless of whether Carton is placed in Before or After.
+    """
+    carton_pdf = tmp_path / "carton_1700mm.pdf"
+    a4_pdf = tmp_path / "f5_a4.pdf"
+    build_pdf(
+        carton_pdf,
+        text_line1="CAFE PHO GOLD",
+        page_w_mm=1698.23,
+        page_h_mm=816.80,
+        frame_w_mm=1460.0,
+        frame_h_mm=530.0,
+    )
+    build_pdf(
+        a4_pdf,
+        text_line1="CAFE PHO GOLD",
+        page_w_mm=297.0,
+        page_h_mm=210.0,
+        frame_w_mm=240.0,
+        frame_h_mm=87.0,
+    )
+    expected_carton_ratio = 1698.23 / 816.80
+    expected_a4_ratio = 297.0 / 210.0
+
+    # Direction 1: Before = Carton, After = A4
+    with open(carton_pdf, "rb") as fb, open(a4_pdf, "rb") as fv:
+        prep1 = client.post(
+            "/api/manual_align/prepare",
+            data={"brand_page": "1", "vendor_page": "1"},
+            files={
+                "brand_file": ("carton.pdf", fb, "application/pdf"),
+                "vendor_file": ("f5_a4.pdf", fv, "application/pdf"),
+            },
+        )
+    assert prep1.status_code == 200
+    d1 = prep1.json()
+    b_w1, b_h1 = d1["brand_shape_px"]
+    v_w1, v_h1 = d1["vendor_shape_px"]
+    assert max(b_w1, b_h1) <= 4096
+    assert (b_w1 * b_h1) <= 16_000_000
+    assert abs((b_w1 / b_h1) - expected_carton_ratio) / expected_carton_ratio < 0.002
+    assert abs((v_w1 / v_h1) - expected_a4_ratio) / expected_a4_ratio < 0.002
+
+    apply1 = client.post(
+        "/api/manual_align/apply",
+        json={
+            "run_id": d1["run_id"],
+            "brand_page": 1,
+            "vendor_page": 1,
+            "transform": {
+                "offset_x_mm": 0.0,
+                "offset_y_mm": 0.0,
+                "scale_x": 5.717,
+                "scale_y": 5.717,
+                "rotation_deg": 0.0,
+            },
+        },
+    )
+    assert apply1.status_code == 200
+    rep1 = apply1.json()["report"]
+    out_w1, out_h1 = rep1["image_size_px"]
+    assert max(out_w1, out_h1) <= 5500
+    assert (out_w1 * out_h1) <= 24_000_000
+    assert abs((out_w1 / out_h1) - expected_carton_ratio) / expected_carton_ratio < 0.002
+
+    # Direction 2: Before = A4, After = Carton
+    with open(a4_pdf, "rb") as fb, open(carton_pdf, "rb") as fv:
+        prep2 = client.post(
+            "/api/manual_align/prepare",
+            data={"brand_page": "1", "vendor_page": "1"},
+            files={
+                "brand_file": ("f5_a4.pdf", fb, "application/pdf"),
+                "vendor_file": ("carton.pdf", fv, "application/pdf"),
+            },
+        )
+    assert prep2.status_code == 200
+    d2 = prep2.json()
+    b_w2, b_h2 = d2["brand_shape_px"]
+    v_w2, v_h2 = d2["vendor_shape_px"]
+    assert max(v_w2, v_h2) <= 4096
+    assert (v_w2 * v_h2) <= 16_000_000
+    assert abs((b_w2 / b_h2) - expected_a4_ratio) / expected_a4_ratio < 0.002
+    assert abs((v_w2 / v_h2) - expected_carton_ratio) / expected_carton_ratio < 0.002
+
+    apply2 = client.post(
+        "/api/manual_align/apply",
+        json={
+            "run_id": d2["run_id"],
+            "brand_page": 1,
+            "vendor_page": 1,
+            "transform": {
+                "offset_x_mm": 0.0,
+                "offset_y_mm": 0.0,
+                "scale_x": 0.175,
+                "scale_y": 0.175,
+                "rotation_deg": 0.0,
+            },
+        },
+    )
+    assert apply2.status_code == 200
+    rep2 = apply2.json()["report"]
+    out_w2, out_h2 = rep2["image_size_px"]
+    assert max(out_w2, out_h2) <= 5500
+    assert (out_w2 * out_h2) <= 24_000_000
+    assert abs((out_w2 / out_h2) - expected_a4_ratio) / expected_a4_ratio < 0.002
+
+
+
 

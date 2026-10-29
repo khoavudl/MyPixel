@@ -34,7 +34,12 @@ import cv2
 import yaml
 from server.config import DEFAULT_PROFILE_PATH, OUT_DIR, UI_DIST_DIR
 from server.exporter import export_audit_report
-from server.manual_aligner import apply_alignment, prepare_alignment
+from server.manual_aligner import (
+    adaptive_px_per_mm,
+    apply_alignment,
+    get_pdf_page_size_mm,
+    prepare_alignment,
+)
 from server.pdf_tools import router as pdf_tools_router
 from server.runner import runner
 from server.schemas import (
@@ -367,7 +372,9 @@ async def inspect_single_artwork(
     final_size_mm: list[float] = [0.0, 0.0]
 
     if file_path.suffix.lower() == ".pdf":
-        raster_page = render_page(file_path, page_number=page, px_per_mm=11.811, source="single")
+        raw_w_mm, raw_h_mm = get_pdf_page_size_mm(file_path, page)
+        eff_px_per_mm = adaptive_px_per_mm(raw_w_mm, raw_h_mm, 11.811)
+        raster_page = render_page(file_path, page_number=page, px_per_mm=eff_px_per_mm, source="single")
         profile = {}
         if DEFAULT_PROFILE_PATH.is_file():
             try:

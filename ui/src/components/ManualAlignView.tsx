@@ -1134,7 +1134,9 @@ export const ManualAlignView: React.FC = () => {
               <img
                 src={brand_image}
                 alt="Before (Brand)"
-                className="w-full h-full object-contain pointer-events-none select-none"
+                width={brand_shape_px[0]}
+                height={brand_shape_px[1]}
+                className="w-full h-full object-fill pointer-events-none select-none"
                 draggable={false}
               />
               {renderAnchorRectangle('before', beforeRectMm, pxPerMmBrand, beforeZoom)}
@@ -1222,7 +1224,9 @@ export const ManualAlignView: React.FC = () => {
               <img
                 src={vendor_image}
                 alt="After (Vendor)"
-                className="w-full h-full object-contain pointer-events-none select-none"
+                width={vendor_shape_px[0]}
+                height={vendor_shape_px[1]}
+                className="w-full h-full object-fill pointer-events-none select-none"
                 draggable={false}
               />
               {renderAnchorRectangle('after', afterRectMm, pxPerMmVendor, afterZoom)}
@@ -1472,7 +1476,9 @@ export const ManualAlignView: React.FC = () => {
           <img
             src={brand_image}
             alt="Brand Layer"
-            className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none bg-white"
+            width={brand_shape_px[0]}
+            height={brand_shape_px[1]}
+            className="absolute inset-0 w-full h-full object-fill pointer-events-none select-none bg-white"
             draggable={false}
           />
 
